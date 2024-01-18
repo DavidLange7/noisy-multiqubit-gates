@@ -4,7 +4,7 @@ Qutip example
 
 This examples shows how to run and reproduce the experiment of
 the preprint arxiv:2301.04173v2 using qutip, by solving the
-linbland equation.
+linbland equation. 
 """
 
 import numpy as np
