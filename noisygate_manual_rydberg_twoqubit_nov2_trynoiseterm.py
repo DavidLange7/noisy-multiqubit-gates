@@ -53,7 +53,7 @@ for friday (oct 6th) do for both rydberg and superconducting single-qubit evolut
 class rydberg_twoq_noisy_gate():
     def __init__(self, K_array, omega, V, delta = 0):
         '''
-        Initialize run by giving the angles for single qubit gate
+        Initialize run by giving the parameters for single qubit gate
         '''
         self.omega = omega
         self.delta = delta
@@ -93,7 +93,7 @@ class rydberg_twoq_noisy_gate():
                        
         lam = []
         for i in range(len(self.K_array)):
-            L = np.matmul(np.matrix.conjugate(U), np.matmul(self.K_array[i], U))
+            L = np.matmul(np.conjugate(U), np.matmul(self.K_array[i], U))
 
             tmp = -1/2*(np.matmul(np.matrix.conjugate(L), L) - np.matmul(L, L))
             lam.append(tmp)
@@ -110,9 +110,8 @@ class rydberg_twoq_noisy_gate():
 
         t = sp.symbols('t', real = True)
         r = [sp.exp(0.5*t), sp.exp(1.49751556253573*t), sp.exp(0.5*t), sp.exp(0.5*t), 1, sp.exp(0.997515562535733*t), 1, 1, sp.exp(0.5*t), 1, sp.exp(0.5*t), 1]
-        var = np.zeros([len(r)])
-        for i in range(len(r)):
-            var[i] = float(sp.integrate(r[i]**2, (t, 0, 1)))
+            
+        var = np.array([float(sp.integrate(r[i]**2, (t, 0, 1))) for i in range(len(r))])
         sample = np.random.multivariate_normal(np.zeros([len(r)]), np.diag(var), 1)
         s = np.array([sample[0][i] for i in range(0,len(r))])
         
@@ -132,16 +131,15 @@ class rydberg_twoq_noisy_gate():
         m[15][10] = -0.707106781186548*s[10]
         m[15][11] = 0.707106781186547*s[11]
         
-        res = np.conj(v_m1) @ m @ v_m1
-            
-        res = np.sqrt(gamma)*res
+        #res = np.conj(v_m1) @ m @ v_m1
+        res = np.sqrt(gamma)* np.matmul(np.conjugate(v_m1), np.matmul(m, v_m1))
         
         return 1J*res
     
     def __modify_gate_twoq(self, det_part = None, U_r = None, ham = None):
                                                    
         U = U_r
-        result = U @ scipy.linalg.expm(self.__stoch_mat(ham))
+        result = U @ scipy.linalg.expm(self.__stoch_mat(ham)) @ scipy.linalg.expm(self.__det_part_r(U))
         #result = U @ scipy.linalg.expm(self.__stoch_part_r(K_array, params, st_mat, st_mat_deph))
         return result
     
@@ -181,8 +179,6 @@ class rydberg_twoq_noisy_gate():
                 results_p5[i] = np.real(tmp[5][5])
                 results_pd[i] = np.real(tmp[-1][-1])
 
-
-                #tmp_st.append(self.__modify_gate_s(params = params, st_mat = st_mat, det_part = det_part))
                 
             else:
                 res = np.matmul(U_array[-i-1], res)
@@ -193,8 +189,6 @@ class rydberg_twoq_noisy_gate():
                 results_p5[i] = np.real(tmp[5][5])
                 results_pd[i] = np.real(tmp[-1][-1])
 
-
-                #tmp_st.append(self.__modify_gate_s(params = params, st_mat = st_mat, det_part = det_part))
         
         return(results_p5)
     
@@ -213,72 +207,11 @@ class rydberg_twoq_noisy_gate():
         print('End of simulation at ', datetime.datetime.now())
         
         return(res)
-'''
-    def run(self, psi_0, shots):
-        
-        #the old try to do it, didnt quite work
-        
-        #The actual run function.
-        #psi_0 > has to be for single qubit
-        #shots >  number of stochastic runs you want to average over.
-        
-        dmat_n = np.zeros([2,2], dtype='complex128')
-        shot_total = 0
-        psi_new = 0
-        
-        for i in range(0,shots):
-            U_new = self.__modify_gate_s()
-            res = np.matmul(U_new, psi_0)
-            
-            res = res/(np.sqrt(np.abs(res[0])**2 + np.abs(res[1])**2))
-            
-            dmat = (np.outer(res, np.conj(res)))    
-            dmat_n += dmat
-            
-            psi_new += res
-            
-            
-            shot_result = np.square(np.absolute(res))
-            shot_total += shot_result
-            
-        psi_new = psi_new/shots
-        dmat_n = (dmat_n/shots)
-        #print('density matrix of noisy gate:', dmat_n, 'and is its trace is', np.trace(dmat_n).real)
-
-        #computing probabilities with density matrix
-        tmp = np.array(([1,0,],[0,0]))
-        probs = [np.trace(np.matmul(dmat_n, np.roll(tmp, i))) for i in [0,3]]
-
-        #computing probabilities with statevector
-        prob_n = shot_total/shots
-
-        #plt.bar(['0', '1'], prob_n.flatten(), color ='blue')
-        
-        return(psi_new, dmat_n[0,0])
-
-
-class twoqubit_noisy_gate():
-    def __init__(self, theta, phi, t_gg, p, T1_ctr, T2_ctr, T1_trg, T2_trg):
-        
-        #Initialize run by giving the angles for single qubit gate
-        
-        
-        if (T2 > 2*T1):
-            raise Exception('wrong relaxation times given, make sure T2 <= 2*T1')
-        self.theta = theta
-        self.phi = phi
-        self.T1 = T1
-        self.T2 = T2
-        self.p = p
-        self.tg = 35 * 10**(-9)
-        
-    def 
-'''
 #%% half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
 
 psi_0 = np.zeros([16])
 psi_0[5] = 1
-N = 700
+N = 1200
 shots = 1
 
 o = 1
@@ -308,3 +241,67 @@ plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5
 plt.legend()
 plt.plot(results, color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
+#%%
+#FIND THE ERROR
+t = 1e2
+gamma = 1/t
+
+o = 1
+d = 0
+V = 0.01
+t1 = 1e2 #amplitude damping
+
+gamma_1 = 1/t1
+
+
+K_1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
+
+K = [np.kron(K_1_single, np.identity(4)).reshape(16,16)]
+
+tst = rydberg_twoq_noisy_gate(K, o, V, d)
+
+ham = tst.two_qubit_gate_ryd_ham()
+
+val, vec = np.linalg.eig(-1J*ham)
+v_m1 = (np.linalg.inv(vec))
+
+t = sp.symbols('t', real = True)
+r = [sp.exp(0.5*t), sp.exp(1.49751556253573*t), sp.exp(0.5*t), sp.exp(0.5*t), 1, sp.exp(0.997515562535733*t), 1, 1, sp.exp(0.5*t), 1, sp.exp(0.5*t), 1]
+var = np.zeros([len(r)])
+for i in range(len(r)):
+    var[i] = float(sp.integrate(r[i]**2, (t, 0, 1)))
+sample = np.random.multivariate_normal(np.zeros([len(r)]), np.diag(var), 1)
+s = np.array([sample[0][i] for i in range(0,len(r))])
+
+m = np.zeros([16, 16]) + 1J*np.zeros([16,16])
+
+m[0][6] = 0.000886077110777928*s[0]
+m[0][7] = -0.708862973703422*s[1]
+m[0][8] = 0.5*s[2]
+m[0][9] = -0.497506280743967*s[3]
+m[1][6] = 0.705327387323585*s[4]
+m[1][7] = 0.000881658076628822*s[5]
+m[1][8] = 0.5*s[6]
+m[1][9] = 0.502506218240452*s[7]
+
+m[14][4] = 0.707106781186548*s[8]
+m[14][5] = 0.707106781186547*s[9]
+m[15][10] = -0.707106781186548*s[10]
+m[15][11] = 0.707106781186547*s[11]
+
+res = np.conj(v_m1) @ m @ v_m1
+    
+xi = np.sqrt(gamma)*res
+
+lam = []
+U = scipy.linalg.expm(-1J*ham)
+
+for i in range(len(K)):
+    L = np.matmul(np.conjugate(U), np.matmul(K[i], U))
+
+    tmp = -1/2*(np.matmul(np.matrix.conjugate(L), L) - np.matmul(L, L))
+    lam.append(tmp)
+lam_tot = np.sum(lam, axis = 0)
