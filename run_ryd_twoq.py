@@ -44,7 +44,7 @@ plt.plot(results, color = 'tab:red')
 #FIND THE ERROR
 t = 1e2
 gamma = 1/t
-
+    
 o = 1
 d = 0
 V = 0.01
