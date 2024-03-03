@@ -1,11 +1,18 @@
 #%%
-import noisygate_rydberg_twoqubit as ng
+import noisygate_rydberg_numerical as ng
+import noisy_rydberg_singlequbit_analytic as nrsa
 
 import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
 import scipy
+#%%
+'''
+In this cell we run the single and two qubit rydberg noisy gate using the numerical version
+> diagonalization is done numerically
+calling noisygate_rydberg_numerical
 
+'''
 # half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
 
 psi_0 = np.zeros([16])
@@ -40,68 +47,66 @@ plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5
 plt.legend()
 plt.plot(results, color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
-#%%
-#FIND THE ERROR
-t = 1e2
-gamma = 1/t
-    
-o = 1
-d = 0
-V = 0.01
-t1 = 1e2 #amplitude damping
-
-gamma_1 = 1/t1
-
-
-K_1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
-       [0, 0, 0, 0],
-       [0, 0, 0, 0],
-       [0, 1, 0, 0]))
-
-K = [np.kron(K_1_single, np.identity(4)).reshape(16,16)]
-
-tst = ng.rydberg_twoq_noisy_gate(K, o, V, d)
-
-ham = tst.two_qubit_gate_ryd_ham()
-
-val, vec = np.linalg.eig(-1J*ham)
-v_m1 = (np.linalg.inv(vec))
-
-t = sp.symbols('t', real = True)
-r = [sp.exp(0.5*t), sp.exp(1.49751556253573*t), sp.exp(0.5*t), sp.exp(0.5*t), 1, sp.exp(0.997515562535733*t), 1, 1, sp.exp(0.5*t), 1, sp.exp(0.5*t), 1]
-var = np.zeros([len(r)])
-for i in range(len(r)):
-    var[i] = float(sp.integrate(r[i]**2, (t, 0, 1)))
-sample = np.random.multivariate_normal(np.zeros([len(r)]), np.diag(var), 1)
-s = np.array([sample[0][i] for i in range(0,len(r))])
-
-m = np.zeros([16, 16]) + 1J*np.zeros([16,16])
-
-m[0][6] = 0.000886077110777928*s[0]
-m[0][7] = -0.708862973703422*s[1]
-m[0][8] = 0.5*s[2]
-m[0][9] = -0.497506280743967*s[3]
-m[1][6] = 0.705327387323585*s[4]
-m[1][7] = 0.000881658076628822*s[5]
-m[1][8] = 0.5*s[6]
-m[1][9] = 0.502506218240452*s[7]
-
-m[14][4] = 0.707106781186548*s[8]
-m[14][5] = 0.707106781186547*s[9]
-m[15][10] = -0.707106781186548*s[10]
-m[15][11] = 0.707106781186547*s[11]
-
-res = np.conj(v_m1) @ m @ v_m1
-    
-xi = np.sqrt(gamma)*res
-
-lam = []
-U = scipy.linalg.expm(-1J*ham)
-
-for i in range(len(K)):
-    L = np.matmul(np.conjugate(U), np.matmul(K[i], U))
-
-    tmp = -1/2*(np.matmul(np.matrix.conjugate(L), L) - np.matmul(L, L))
-    lam.append(tmp)
-lam_tot = np.sum(lam, axis = 0)
 # %%
+'''
+In this cell, we run the single qubit rydberg noisy gate in its analytical form,
+calling noisy_rydberg_singlequbit_analytic
+
+#half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
+
+'''
+
+
+t1 = 4 #amplitude damping
+t2 = 300*10**(-3) #dephasing
+
+o_real = 2*np.pi*10*10**(3)
+o_fin = np.pi
+
+tg = np.pi/o_real
+
+g_1 = tg/t1
+gd = tg/t2
+
+gamma = [g_1, gd]
+
+K_array = [
+        [sp.Matrix(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [1, 0, 0, 0]))], 
+        [sp.Matrix(([0, 0, 0, 0],
+              [0, 0, 0, 0],
+              [0, 0, 0, 0],
+              [0, 1, 0, 0]))] ]
+        
+tst = nrsa.single_noisy_gate(np.pi, 0, K_array, gamma)
+
+psi_0 = np.zeros([4])
+psi_0[0] = 1
+N = 30000
+shots = 20
+
+o = np.pi
+d = 0 #d = 0 causes overflow warnings, might want to add an exception
+o_p = np.sqrt(o**2 + d**2)
+
+results = tst.singlequbit_sample_runs(psi_0, N, shots, params = [1, o_p, d, o, 1, 1] ) #t, o_p, d, o, x1, x2
+#plt.title('Time-evolution of |0> state')
+plt.ylabel(r"$\rho_{00}$")
+plt.xlabel(r'time in [$t_g$]')
+
+o_fin = o
+o_real = 2*np.pi*10*10**(3)
+tg = np.pi/o_real
+t1 = 4 #amplitude damping
+t2 = 300*10**(-3) #depol damping
+gamma_1 = tg/t1
+gd = tg/t2
+
+#plt.axvline(x=t1/tg, label='$T_a$', color = 'orange', linestyle='dashed', alpha = 0.5)
+plt.axvline(x=t2/tg, label='$T_{dp}$', color = 'black', linestyle='dashed', alpha = 0.7)
+plt.plot(results[0], color = 'tab:red', label = 'noisygate')
+
+plt.legend()
+#plt.savefig('noisygate_rydberg_sq_1000shots_10khzdrive_00.pdf', dpi=1000, bbox_inches = 'tight')
