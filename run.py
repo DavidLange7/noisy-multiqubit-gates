@@ -14,39 +14,53 @@ calling noisygate_rydberg_numerical
 
 '''
 # half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
+#Single qubit gate
 
-psi_0 = np.zeros([16])
-psi_0[5] = 1
-N = 1200
-shots = 1
+psi_0 = np.zeros([4])
+psi_0[0] = 1
+N = 8000
+shots = 50
+t1 = 0.04 #amplitude damping #4s is in thesis
 
-o = 1
+t2 = 300*10**(-3) #dephasing damping
+
+o_real = 2*np.pi*10*10**(3)
+
+
+tg = np.pi/o_real
+
+gamma_1 = tg/t1
+gamma_2 = tg/t2
+
+gamma = [gamma_1, gamma_1]
+
+K_array = [np.array(([0, 0, 0, 0],
+[0, 0, 0, 0],
+[0, 0, 0, 0],
+[0, 1, 0, 0])), 
+           np.array(([0, 0, 0, 0],
+[0, 0, 0, 0],
+[0, 0, 0, 0], 
+[1, 0, 0, 0]))]
+
+'''dephasing
+
+gamma = [gamma_2]
+
+K_array = [np.array(([1, 0, 0, 0],
+[0, -1, 0, 0],
+[0, 0, 0, 0],
+[0, 0, 0, 0]))]
+'''
+o = np.pi
 d = 0
-V = 0.01
-t1 = 1e2 #amplitude damping
 
-gamma_1 = 1/t1
+tst = ng.rydberg_twoq_noisy_gate(K_array, o, d, 1, gamma)
 
+results = tst.singlequbit_sample_runs(psi_0, N, shots)
 
-K_1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
-       [0, 0, 0, 0],
-       [0, 0, 0, 0],
-       [0, 1, 0, 0]))
-
-K = [np.kron(K_1_single, np.identity(4)).reshape(16,16)]
-
-tst = ng.rydberg_twoq_noisy_gate(K, o, V, d)
-
-results = tst.twoqubit_sample_runs(psi_0, N, shots)
-
-plt.title('Time-evolution of |11> state')
-plt.ylabel(r"$\rho_{11}$")
-plt.xlabel(r'time')
-plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
-
-plt.legend()
-plt.plot(results, color = 'tab:red')
-#plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
+plt.plot(results, color = 'tab:red', label = 'noisygate')
+plt.axvline(x=t1/tg, label='$T_{dp}$', color = 'black', linestyle='dashed', alpha = 0.7)
 # %%
 '''
 In this cell, we run the single qubit rydberg noisy gate in its analytical form,

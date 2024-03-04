@@ -32,7 +32,7 @@ def tqdm_joblib(tqdm_object):
     finally:
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close()
-        
+
 '''
 #1 create 1-qubit initial state vector
 #2 create initial noiseless single qubit gate
@@ -51,7 +51,7 @@ for friday (oct 6th) do for both rydberg and superconducting single-qubit evolut
 '''
 #%%
 class rydberg_twoq_noisy_gate():
-    def __init__(self, K_array, omega, V, delta = 0):
+    def __init__(self, K_array, omega, delta = 0, V = 0, gamma = []):
         '''
         Initialize run by giving the parameters for single qubit gate
         '''
@@ -59,6 +59,7 @@ class rydberg_twoq_noisy_gate():
         self.delta = delta
         self.V = V
         self.K_array = K_array
+        self.gamma = gamma
         
     def single_qubit_gate_ryd(self):
         o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -70,6 +71,17 @@ class rydberg_twoq_noisy_gate():
                           ,[0,0,0,1]))
         
         return U
+    
+    def single_qubit_gate_ryd_ham(self):
+        omega = self.omega
+        delta = self.delta
+        
+        H = np.array([[0, omega/2, 0, 0], 
+                      [omega/2, -delta, 0, 0],
+                      [0, 0, 0, 0],
+                      [0, 0, 0, 0]])
+        
+        return H
             
     def two_qubit_gate_ryd_ham(self):
         '''
@@ -89,8 +101,35 @@ class rydberg_twoq_noisy_gate():
         
         return H_2
         
-    def __det_part_r(self, U):
-                       
+    def __det_part_r(self, ham):
+
+        L = self.K_array
+        
+        val, vec = np.linalg.eig(-1J*ham)
+        v_m1 = (np.linalg.inv(vec))
+        t = sp.symbols('t', real = True)
+
+        expr1 = [sp.exp(1J*val[i]*t) for i in range(len(val))]
+        expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
+
+        expr1 = np.diag(expr1)
+        expr2 = np.diag(expr2)
+        
+        lam = []
+    
+        for ind in range(len(L)):
+            L_int = sp.simplify( np.conj(v_m1) @ expr1 @ np.conj(vec) @ L[ind] @ vec @ expr2 @ v_m1 )
+            
+            tmp1 = sp.Matrix(-1/2*self.gamma[ind]*(np.matmul(np.conj(L_int), L_int) - np.matmul(L_int, L_int)))
+            
+            tmp2 = sp.integrate(tmp1, (t, 0, 1))
+            tmp3 = sp.lambdify(t, tmp2, "numpy")
+            lam.append(tmp3(1))
+            
+        lam_tot = np.sum(lam, axis = 0)
+
+            
+        '''
         lam = []
         for i in range(len(self.K_array)):
             L = np.matmul(np.conjugate(U), np.matmul(self.K_array[i], U))
@@ -98,49 +137,121 @@ class rydberg_twoq_noisy_gate():
             tmp = -1/2*(np.matmul(np.matrix.conjugate(L), L) - np.matmul(L, L))
             lam.append(tmp)
         lam_tot = np.sum(lam, axis = 0)
-
+        '''
         return lam_tot
     
-    def __stoch_mat(self, ham):
-        t = 1e2
-        gamma = 1/t
-    
-        val, vec = np.linalg.eig(-1J*ham)
-        v_m1 = (np.linalg.inv(vec))
-
+    def __variance(self, expr):
+        '''
+        
+        Input is a scipy expression involving only "t"-variable
+        
+        '''
         t = sp.symbols('t', real = True)
-        r = [sp.exp(0.5*t), sp.exp(1.49751556253573*t), sp.exp(0.5*t), sp.exp(0.5*t), 1, sp.exp(0.997515562535733*t), 1, 1, sp.exp(0.5*t), 1, sp.exp(0.5*t), 1]
-            
-        var = np.array([float(sp.integrate(r[i]**2, (t, 0, 1))) for i in range(len(r))])
-        sample = np.random.multivariate_normal(np.zeros([len(r)]), np.diag(var), 1)
-        s = np.array([sample[0][i] for i in range(0,len(r))])
+        f = sp.lambdify(t, expr**2)
+        res = scipy.integrate.quad(f, 0, 1)
+        return(res[0])
+
+    def __correlation(self, expr1, expr2):
+        '''
         
-        m = np.zeros([16, 16]) + 1J*np.zeros([16,16])
+        Input are scipy expressions involving only "t"-variable
         
-        m[0][6] = 0.000886077110777928*s[0]
-        m[0][7] = -0.708862973703422*s[1]
-        m[0][8] = 0.5*s[2]
-        m[0][9] = -0.497506280743967*s[3]
-        m[1][6] = 0.705327387323585*s[4]
-        m[1][7] = 0.000881658076628822*s[5]
-        m[1][8] = 0.5*s[6]
-        m[1][9] = 0.502506218240452*s[7]
+        '''
+        t = sp.symbols('t', real = True)
+        f = sp.lambdify(t, expr1*expr2)
+        res = scipy.integrate.quad(f, 0, 1)
+        return(res[0])
+
+
+    def __stats(self, ham):
+        '''
+        mat is a sympy matrix with only "t"-variable
+        '''
         
-        m[14][4] = 0.707106781186548*s[8]
-        m[14][5] = 0.707106781186547*s[9]
-        m[15][10] = -0.707106781186548*s[10]
-        m[15][11] = 0.707106781186547*s[11]
+        corr_rs = []
+        corr_ims = []
         
-        #res = np.conj(v_m1) @ m @ v_m1
-        res = np.sqrt(gamma)* np.matmul(np.conjugate(v_m1), np.matmul(m, v_m1))
+        L = self.K_array
         
-        return 1J*res
+        val, vec = np.linalg.eig(-1J*ham)
+        v_m1 = np.linalg.inv(vec)
+        t = sp.symbols('t', real = True)
+
+        expr1 = [sp.exp(1J*val[i]*t) for i in range(len(val))]
+        expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
+
+        expr1 = np.diag(expr1)
+        expr2 = np.diag(expr2)
+
+        for ind in range(len(L)):
     
-    def __modify_gate_twoq(self, det_part = None, U_r = None, ham = None):
+            tot = sp.simplify( np.conj(v_m1) @ expr1 @ np.conj(vec) @ L[ind] @ vec @ expr2 @ v_m1 )
+        
+            mat = sp.flatten(tot)
+    
+            corr_r = np.zeros([len(mat), len(mat)])
+            corr_im = np.zeros([len(mat), len(mat)])
+            
+            for k in range(len(mat)):
+                for j in range(len(mat)):
+                    binary_1 = mat[k].is_zero
+                    binary_2 = mat[j].is_zero
+                    
+                    if binary_1 != True and binary_2 != True:
+                        if k == j:
+                            corr_r[k,k] = self.__variance(sp.re(mat[k]))
+                        else:
+                            corr_r[k,j] = self.__correlation(sp.re(mat[k]), sp.re(mat[j]))
+            
+            for k in range(len(mat)):
+                for j in range(len(mat)):
+                    binary_1 = mat[k].is_zero
+                    binary_2 = mat[j].is_zero
+                    
+                    if binary_1 != True and binary_2 != True:
+                        if k == j:
+                            corr_im[k,k] = self.__variance(sp.re(mat[k]))
+                        else:
+                            corr_im[k,j] = self.__correlation(sp.re(mat[k]), sp.re(mat[j]))
+        
+            corr_rs.append(corr_r)
+            corr_ims.append(corr_im)
+            
+        return (corr_rs, corr_ims)
+    
+    def __stoch_part(self, corr_rs, corr_ims):
+        
+        len_tot = np.shape(corr_rs[0])[0]
+        len_resh = int(np.sqrt(len_tot))
+                
+        m = np.zeros([len_resh, len_resh]) + 1J*np.zeros([len_resh, len_resh])
+
+        for ind in range(len(self.K_array)):
+            corr_r = corr_rs[ind]
+            corr_im = corr_ims[ind]
+    
+            sample_r = np.random.multivariate_normal(np.zeros([len_tot]), corr_r, 1)
+            sample_im = np.random.multivariate_normal(np.zeros([len_tot]), corr_im, 1)
+    
+            s_r = np.array([sample_r[0][i] for i in range(0, len_tot)])
+            s_im = np.array([sample_im[0][i] for i in range(0, len_tot)])
+            
+            #s_r = sample_r[0]
+            #s_im = sample_r[0]
+          
+            
+            result = s_r.reshape(len_resh, len_resh) + 1J*s_im.reshape(len_resh, len_resh)
+            
+            m += np.sqrt(self.gamma[ind])*result
+
+        
+        return(1J*m)
+            
+            
+    def __modify_gate_twoq(self, U, det_part, corr_rs = None, corr_ims = None):
                                                    
-        U = U_r
-        result = U @ scipy.linalg.expm(self.__stoch_mat(ham)) @ scipy.linalg.expm(self.__det_part_r(U))
-        #result = U @ scipy.linalg.expm(self.__stoch_part_r(K_array, params, st_mat, st_mat_deph))
+        result = U @ scipy.linalg.expm(self.__stoch_part(corr_rs, corr_ims)) @ scipy.linalg.expm(det_part)
+
         return result
     
     def twoqubit_single_run(self, psi_0, N):
@@ -166,9 +277,12 @@ class rydberg_twoq_noisy_gate():
         
         U = scipy.linalg.expm(-1J*H)
 
-        det_part = self.__det_part_r(U)
+        det = self.__det_part_r(H)
+        corr_mats = self.__stats(H)
         
-        U_array = np.array([self.__modify_gate_twoq(det_part = det_part, U_r = U, ham = H) for i in range(N)])
+        #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
+        
+        U_array = np.array([self.__modify_gate_twoq(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
         for i in range(1,N):
             if i == 1:
                 res = np.matmul(U_array[-i-1], psi_0)
@@ -192,6 +306,55 @@ class rydberg_twoq_noisy_gate():
         
         return(results_p5)
     
+    def singlequbit_single_run(self, psi_0, N):
+        '''
+        The actual run function.
+        psi_0 > has to be for two qubit
+        N >  number of two qubit gates.
+        '''
+        
+        results_p0 = np.zeros([N])
+        results_p1 = np.zeros([N])
+        results_pd = np.zeros([N])
+        
+        results_p0[0] = psi_0[0]
+        results_p1[0] = psi_0[1]
+        
+        results_pd[0] = psi_0[3]
+
+        #tmp_st = []
+        
+        
+        H = self.single_qubit_gate_ryd_ham()
+        
+        U = scipy.linalg.expm(-1J*H)
+
+        det = self.__det_part_r(H)
+        corr_mats = self.__stats(H)
+        
+        #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
+        
+        U_array = np.array([self.__modify_gate_twoq(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
+
+        for i in range(1,N):
+            if i == 1:
+                res = np.matmul(U_array[-i-1], psi_0)
+                tmp = (np.outer(np.conj(res), res))
+                results_p0[i] = np.real(tmp[0][0])
+                results_p1[i] = np.real(tmp[1][1])
+                
+                results_pd[i] = np.real(tmp[3][3])
+                
+            else:
+                res = np.matmul(U_array[-i-1], res)
+                tmp = (np.outer(np.conj(res), res))
+                results_p0[i] = np.real(tmp[0][0])
+                results_p1[i] = np.real(tmp[1][1])
+                
+                results_pd[i] = np.real(tmp[3][3])
+                
+        return(results_p0)
+    
     def twoqubit_sample_runs(self, psi_0, N, shots):
         
         print('Start of simulation at ', datetime.datetime.now())
@@ -200,6 +363,22 @@ class rydberg_twoq_noisy_gate():
             res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
         
         #without progress bar: res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
+
+        res = np.array(res).sum(axis=0)/(shots)
+        
+        print('--------------------------------')
+        print('End of simulation at ', datetime.datetime.now())
+        
+        return(res)
+    
+    def singlequbit_sample_runs(self, psi_0, N, shots):
+        
+        print('Start of simulation at ', datetime.datetime.now())
+        print('--------------------------------')
+        with tqdm_joblib(tqdm(desc="My calculation", total=shots)) as progress_bar:
+            res = Parallel(n_jobs=-1)(delayed(self.singlequbit_single_run)(psi_0, N) for i in range(shots))
+        
+        #without progress bar: res = Parallel(n_jobs=-1)(delayed(self.singlequbit_single_run)(psi_0, N) for i in range(shots))
 
         res = np.array(res).sum(axis=0)/(shots)
         
