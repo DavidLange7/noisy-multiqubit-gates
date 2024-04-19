@@ -50,7 +50,7 @@ def tqdm_joblib(tqdm_object):
 for friday (oct 6th) do for both rydberg and superconducting single-qubit evolution with and without stochastic part and compare....
 '''
 #%%
-class rydberg_twoq_noisy_gate():
+class rydberg_noisy_gate():
     def __init__(self, K_array, omega, delta = 0, V = 0, gamma = []):
         '''
         Initialize run by giving the parameters for single qubit gate
@@ -248,7 +248,7 @@ class rydberg_twoq_noisy_gate():
         return(1J*m)
             
             
-    def __modify_gate_twoq(self, U, det_part, corr_rs = None, corr_ims = None):
+    def __modify_gate(self, U, det_part, corr_rs = None, corr_ims = None):
                                                    
         result = U @ scipy.linalg.expm(self.__stoch_part(corr_rs, corr_ims)) @ scipy.linalg.expm(det_part)
 
@@ -282,7 +282,7 @@ class rydberg_twoq_noisy_gate():
         
         #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
         
-        U_array = np.array([self.__modify_gate_twoq(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
+        U_array = np.array([self.__modify_gate(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
         for i in range(1,N):
             if i == 1:
                 res = np.matmul(U_array[-i-1], psi_0)
@@ -309,8 +309,8 @@ class rydberg_twoq_noisy_gate():
     def singlequbit_single_run(self, psi_0, N):
         '''
         The actual run function.
-        psi_0 > has to be for two qubit
-        N >  number of two qubit gates.
+        psi_0 > has to be for single qubit
+        N >  number of single qubit gates.
         '''
         
         results_p0 = np.zeros([N])
@@ -334,7 +334,7 @@ class rydberg_twoq_noisy_gate():
         
         #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
         
-        U_array = np.array([self.__modify_gate_twoq(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
+        U_array = np.array([self.__modify_gate(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
 
         for i in range(1,N):
             if i == 1:
