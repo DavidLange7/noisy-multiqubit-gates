@@ -106,21 +106,23 @@ class rydberg_noisy_gate():
         L = self.K_array
         
         val, vec = np.linalg.eig(-1J*ham)
-        v_m1 = (np.linalg.inv(vec))
+        v_m1 = sp.Matrix((np.linalg.inv(vec)))
+        vec = sp.Matrix(vec)
         t = sp.symbols('t', real = True)
 
         expr1 = [sp.exp(1J*val[i]*t) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
-        expr1 = np.diag(expr1)
-        expr2 = np.diag(expr2)
-        
+        expr1 = sp.diag(*expr1)
+        expr2 = sp.diag(*expr2)
+
+       
         lam = []
     
         for ind in range(len(L)):
-            L_int = sp.simplify( np.conj(v_m1) @ expr1 @ np.conj(vec) @ L[ind] @ vec @ expr2 @ v_m1 )
+            L_int = sp.simplify( sp.conjugate(v_m1) @ expr1 @ sp.conjugate(vec) @ sp.Matrix(L[ind]) @ vec @ expr2 @ v_m1 )
             
-            tmp1 = sp.Matrix(-1/2*self.gamma[ind]*(np.matmul(np.conj(L_int), L_int) - np.matmul(L_int, L_int)))
+            tmp1 = sp.Matrix(-1/2*self.gamma[ind]*(dgr(L_int) @ L_int - L_int @ L_int))
             
             tmp2 = sp.integrate(tmp1, (t, 0, 1))
             tmp3 = sp.lambdify(t, tmp2, "numpy")
@@ -386,3 +388,4 @@ class rydberg_noisy_gate():
         print('End of simulation at ', datetime.datetime.now())
         
         return(res)
+# %%
