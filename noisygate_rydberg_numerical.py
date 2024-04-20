@@ -211,9 +211,9 @@ class rydberg_noisy_gate():
                     
                     if binary_1 != True and binary_2 != True:
                         if k == j:
-                            corr_im[k,k] = self.__variance(sp.re(mat[k]))
+                            corr_im[k,k] = self.__variance(sp.im(mat[k]))
                         else:
-                            corr_im[k,j] = self.__correlation(sp.re(mat[k]), sp.re(mat[j]))
+                            corr_im[k,j] = self.__correlation(sp.im(mat[k]), sp.im(mat[j]))
         
             corr_rs.append(corr_r)
             corr_ims.append(corr_im)
