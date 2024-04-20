@@ -5,6 +5,7 @@ Created on Mon Jul 17 12:31:26 2023
 
 @author: david
 """
+#%%
 
 import numpy as np
 import scipy
@@ -53,7 +54,7 @@ def tqdm_joblib(tqdm_object):
         joblib.parallel.BatchCompletionCallBack = old_batch_callback
         tqdm_object.close()
         
-#%%
+
 class single_noisy_gate():
     def __init__(self, theta, phi, K_array, gamma):
         '''
@@ -264,14 +265,9 @@ class single_noisy_gate():
                 else:
                     res = np.matmul(U_array[-i-1], res)
                     tmp = (np.outer(np.conj(res), res))
-                    results_st1[i][j] = np.real(tmp[0][0])
-                    
-                if i == int(N/2) and j == int(shots/2):
-                    print('Halfwaypoint of simulation reached at ', datetime.datetime.now())
-            
+                    results_st1[i][j] = np.real(tmp[0][0])            
         
         results_st2 = np.array([np.sum(results_st1[k])/shots for k in range(N)])
-        plt.plot(results_st2)
         
         return(results_st2)
     

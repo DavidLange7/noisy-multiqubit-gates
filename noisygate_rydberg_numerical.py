@@ -104,25 +104,25 @@ class rydberg_noisy_gate():
     def __det_part_r(self, ham):
 
         L = self.K_array
-        
-        val, vec = np.linalg.eig(-1J*ham)
-        v_m1 = sp.Matrix((np.linalg.inv(vec)))
-        vec = sp.Matrix(vec)
+
+        val, vec = np.linalg.eig(ham)
+        v_m1 = (np.linalg.inv(vec))
+
         t = sp.symbols('t', real = True)
 
-        expr1 = [sp.exp(1J*val[i]*t) for i in range(len(val))]
+        expr1 = [sp.exp(np.conj(-1J*val[i]*t)) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
-        expr1 = sp.diag(*expr1)
-        expr2 = sp.diag(*expr2)
+        expr1 = np.diag(expr1)
+        expr2 = np.diag(expr2)
+
 
        
         lam = []
     
         for ind in range(len(L)):
-            L_int = sp.simplify( sp.conjugate(v_m1) @ expr1 @ sp.conjugate(vec) @ sp.Matrix(L[ind]) @ vec @ expr2 @ v_m1 )
-            
-            tmp1 = sp.Matrix(-1/2*self.gamma[ind]*(dgr(L_int) @ L_int - L_int @ L_int))
+            L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 
+            tmp1 = sp.simplify(sp.Matrix(-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))
             
             tmp2 = sp.integrate(tmp1, (t, 0, 1))
             tmp3 = sp.lambdify(t, tmp2, "numpy")
@@ -175,19 +175,18 @@ class rydberg_noisy_gate():
         
         L = self.K_array
         
-        val, vec = np.linalg.eig(-1J*ham)
+        val, vec = np.linalg.eig(ham)
         v_m1 = np.linalg.inv(vec)
         t = sp.symbols('t', real = True)
 
-        expr1 = [sp.exp(1J*val[i]*t) for i in range(len(val))]
+        expr1 = [sp.exp(np.conj(-1J*val[i]*t)) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
         expr1 = np.diag(expr1)
         expr2 = np.diag(expr2)
 
         for ind in range(len(L)):
-    
-            tot = sp.simplify( np.conj(v_m1) @ expr1 @ np.conj(vec) @ L[ind] @ vec @ expr2 @ v_m1 )
+            tot =  sp.simplify(np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 )
         
             mat = sp.flatten(tot)
     
@@ -252,7 +251,7 @@ class rydberg_noisy_gate():
             
     def __modify_gate(self, U, det_part, corr_rs = None, corr_ims = None):
                                                    
-        result = U @ scipy.linalg.expm(self.__stoch_part(corr_rs, corr_ims)) @ scipy.linalg.expm(det_part)
+        result = U @ scipy.linalg.expm(det_part) @ scipy.linalg.expm(self.__stoch_part(corr_rs, corr_ims))
 
         return result
     
