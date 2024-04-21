@@ -65,6 +65,11 @@ class single_noisy_gate():
         self.K_array = K_array
         self.gamma = gamma
     
+    def __debugger(self, text, tbp, debug):
+        if debug == 2:
+            print(text, tbp)
+        return(None)
+    
     def single_qubit_gate_ryd(self):
         
         o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -224,6 +229,9 @@ class single_noisy_gate():
         Md[0, 1] = val_2
         Md[1, 0] = val_3
         Md[1, 1] = val_4
+
+        self.__debugger('stochpart',M + M2 + Md, debug = 1)
+
 
         return 1J*(M + M2 + Md)
     

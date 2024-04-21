@@ -1,3 +1,4 @@
+#%%
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
@@ -61,6 +62,11 @@ class rydberg_noisy_gate():
         self.K_array = K_array
         self.gamma = gamma
         
+    def __debugger(self, text, tbp, debug):
+        if debug == 2:
+            print(text, tbp)
+        return(None)
+    
     def single_qubit_gate_ryd(self):
         o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
         x1, x2 = sp.symbols('x1, x2')
@@ -189,16 +195,16 @@ class rydberg_noisy_gate():
             tot =  sp.simplify(np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 )
         
             mat = sp.flatten(tot)
-    
+
             corr_r = np.zeros([len(mat), len(mat)])
             corr_im = np.zeros([len(mat), len(mat)])
             
             for k in range(len(mat)):
                 for j in range(len(mat)):
-                    binary_1 = mat[k].is_zero
-                    binary_2 = mat[j].is_zero
+                    binary_1 = t in mat[k].free_symbols
+                    binary_2 = t in mat[j].free_symbols
                     
-                    if binary_1 != True and binary_2 != True:
+                    if binary_1 == True and binary_2 == True:
                         if k == j:
                             corr_r[k,k] = self.__variance(sp.re(mat[k]))
                         else:
@@ -206,10 +212,10 @@ class rydberg_noisy_gate():
             
             for k in range(len(mat)):
                 for j in range(len(mat)):
-                    binary_1 = mat[k].is_zero
-                    binary_2 = mat[j].is_zero
+                    binary_1 = t in mat[k].free_symbols
+                    binary_2 = t in mat[j].free_symbols
                     
-                    if binary_1 != True and binary_2 != True:
+                    if binary_1 == True and binary_2 == True:
                         if k == j:
                             corr_im[k,k] = self.__variance(sp.im(mat[k]))
                         else:
@@ -217,7 +223,10 @@ class rydberg_noisy_gate():
         
             corr_rs.append(corr_r)
             corr_ims.append(corr_im)
-            
+
+            self.__debugger('corr_rs',corr_rs, debug = 0)
+            self.__debugger('corr_ims',corr_ims, debug = 0)
+
         return (corr_rs, corr_ims)
     
     def __stoch_part(self, corr_rs, corr_ims):
@@ -245,7 +254,8 @@ class rydberg_noisy_gate():
             
             m += np.sqrt(self.gamma[ind])*result
 
-        
+        self.__debugger('stochpart',m, debug = 1)
+
         return(1J*m)
             
             
