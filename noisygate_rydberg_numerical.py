@@ -128,7 +128,7 @@ class rydberg_noisy_gate():
     
         for ind in range(len(L)):
             L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 
-            tmp1 = sp.simplify(sp.Matrix(-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))
+            tmp1 = sp.simplify(sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int))))
             
             tmp2 = sp.integrate(tmp1, (t, 0, 1))
             tmp3 = sp.lambdify(t, tmp2, "numpy")
