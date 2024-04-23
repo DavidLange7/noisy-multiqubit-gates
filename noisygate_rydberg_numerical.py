@@ -128,11 +128,14 @@ class rydberg_noisy_gate():
     
         for ind in range(len(L)):
             L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 
-            tmp1 = sp.simplify(sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int))))
+            tmp1 = sp.flatten((sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))))
             
-            tmp2 = sp.integrate(tmp1, (t, 0, 1))
-            tmp3 = sp.lambdify(t, tmp2, "numpy")
-            lam.append(tmp3(1))
+            #tmp2 = sp.integrate(tmp1, (t, 0, 1))
+            tmp3 = np.array([scipy.integrate.quad(sp.lambdify(t, tmp1[i], "numpy"), 0, 1)[0] for i in range(len(tmp1))])
+
+            #tmp2 = sp.lambdify(t, tmp1, "numpy")
+            #tmp3 = scipy.integrate.quad(tmp2, 0, 1)
+            lam.append(tmp3.reshape(int(np.sqrt(len(tmp3))), int(np.sqrt(len(tmp3)))))
             
         lam_tot = np.sum(lam, axis = 0)
 
@@ -315,7 +318,7 @@ class rydberg_noisy_gate():
                 results_pd[i] = np.real(tmp[-1][-1])
 
         
-        return(results_p5)
+        return(results_p5, results_pd)
     
     def singlequbit_single_run(self, psi_0, N):
         '''

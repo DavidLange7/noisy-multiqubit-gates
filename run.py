@@ -122,8 +122,8 @@ plt.plot(np.abs(results_num - results_anly))
 
 psi_0 = np.zeros([16])
 psi_0[5] = 1
-N = 1
-shots = 1
+N = 300
+shots = 100
 
 o = np.pi
 d = 0
@@ -139,37 +139,37 @@ K_1_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 1, 0, 0]))
 
-K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16)]
+K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
 
-gamma = [gamma_1]
-'''
 
-K_0_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+
+K_0_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [1, 0, 0, 0]))
 
-K_1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_1_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 1, 0, 0]))
 
-K_r_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_r_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 1, 0]))
 
-K_10_single = np.sqrt(gamma_1)*np.array(([0, 1, 0, 0],
+K_10_single = np.array(([0, 1, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0]))
 
-K_r0_single = np.sqrt(gamma_1)*np.array(([0, 0, 1, 0],
+K_r0_single = np.array(([0, 0, 1, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0]))
 
-K_r1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_r1_single = np.array(([0, 0, 0, 0],
        [0, 0, 1, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0]))
@@ -184,7 +184,8 @@ K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
      np.kron(np.identity(4), K_10_single).reshape(16,16),
      np.kron(K_r0_single, np.identity(4)).reshape(16,16),
      np.kron(np.identity(4), K_r0_single).reshape(16,16)]
-'''
+
+gamma = [gamma_1 for i in range(len(K_array))]
 
 
 tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
@@ -198,6 +199,6 @@ plt.xlabel(r'time')
 plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
 
 plt.legend()
-plt.plot(results, color = 'tab:red')
+plt.plot(results[1], color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
 # %%
