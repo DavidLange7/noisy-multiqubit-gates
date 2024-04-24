@@ -475,7 +475,7 @@ x_2 = 1
 
 hamiltonian = single_gate_hamiltonian_ryderg_fourlevels(d, o)
 
-numpy_expr3 = U_dag(o_p, 1, d, o, x_1, x_2, gamma_1)@K_d(o_p, 1, d, o, x_1, x_2, gamma_2)@U(o_p, 1, d, o, x_1, x_2, gamma_1)
+numpy_expr3 = U_dag(o_p, 1, d, o, x_1, x_2, gamma_1) @ K_d(o_p, 1, d, o, x_1, x_2, gamma_2) @ U(o_p, 1, d, o, x_1, x_2, gamma_1)
 
 
 linb1 = qp.Qobj(numpy_expr(o_p, 1, d, o, x_1, x_2, gamma_1).reshape((4,4)),
@@ -564,11 +564,14 @@ V = 0.01
 #hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
 hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
 
-val_o, vec = np.linalg.eig(-1J*hamiltonian)
+val_o, vec = np.linalg.eig(hamiltonian)
+
 val = np.exp(val_o)
+v_m1 = (np.linalg.inv(vec))
 
+val_mat = np.diag(1J*val)
+val_mat2 = np.diag(-1J*val)
 
-val_mat = np.diag(val)
 
 
 #U = np.matmul(vec, np.matmul(val_mat,np.linalg.inv(vec)))
@@ -658,9 +661,14 @@ K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
 
 #test = np.conj(np.linalg.inv(vec)) @ val_mat @ np.conj(vec) @ K[0] @ vec @ np.conj(val_mat) @ np.linalg.inv(vec)
 
-linb = [qp.Qobj(np.matmul(np.conjugate(U), np.matmul(K[j], U)),
+linb =  [qp.Qobj((np.conj(v_m1).T @ val_mat @ np.conj(vec).T @ K[j] @ vec @ val_mat2 @ v_m1),
         dims=[[4,4],[4,4]]) for j in range(len(K))]
-#linb = [qp.Qobj(np.linalg.multi_dot([np.conjugate(np.linalg.multi_dot([vec, val_mat, np.linalg.inv(vec)])), K[i], vec, val_mat, np.linalg.inv(vec)]), dims=[[4,4],[4,4]]) for i in range(len(K))]
+
+linb = [qp.Qobj(np.matmul(np.conjugate(U).T, np.matmul(K[j], U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+
+linb = [qp.Qobj((np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+
+linb = [qp.Qobj(np.linalg.multi_dot([np.conjugate(np.linalg.multi_dot([vec, val_mat, np.linalg.inv(vec)])), K[i], vec, val_mat, np.linalg.inv(vec)]), dims=[[4,4],[4,4]]) for i in range(len(K))]
         
 '''
 linb1 = qp.Qobj(K_1,
@@ -675,7 +683,6 @@ hamiltonian = qp.Qobj(hamiltonian, dims=[[4,4],[4,4]])
 
 lindblands = [linb]
 
-#question: why is the probability from 0 to .25 for starting in |11> of |1r> and |r1> ?
 
 #psi0 = qp.fock([3, 3], [1, 1])
 psi0 = qp.fock([4, 4], [1, 1])
