@@ -128,27 +128,17 @@ class rydberg_noisy_gate():
     
         for ind in range(len(L)):
             L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 
-            tmp1 = sp.flatten((sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))))
+            L_vec = sp.flatten((sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))))
             
             #tmp2 = sp.integrate(tmp1, (t, 0, 1))
-            tmp3 = np.array([scipy.integrate.quad(sp.lambdify(t, tmp1[i], "numpy"), 0, 1)[0] for i in range(len(tmp1))])
+            tmp_tot = np.array([scipy.integrate.quad(sp.lambdify(t, sp.re(L_vec[i]), "numpy"), 0, 1)[0] + 1J*scipy.integrate.quad(sp.lambdify(t, sp.im(L_vec[i]), "numpy"), 0, 1)[0] for i in range(len(L_vec))])
 
             #tmp2 = sp.lambdify(t, tmp1, "numpy")
             #tmp3 = scipy.integrate.quad(tmp2, 0, 1)
-            lam.append(tmp3.reshape(int(np.sqrt(len(tmp3))), int(np.sqrt(len(tmp3)))))
+            lam.append(tmp_tot.reshape(int(np.sqrt(len(L_vec))), int(np.sqrt(len(L_vec)))))
             
         lam_tot = np.sum(lam, axis = 0)
 
-            
-        '''
-        lam = []
-        for i in range(len(self.K_array)):
-            L = np.matmul(np.conjugate(U), np.matmul(self.K_array[i], U))
-
-            tmp = -1/2*(np.matmul(np.matrix.conjugate(L), L) - np.matmul(L, L))
-            lam.append(tmp)
-        lam_tot = np.sum(lam, axis = 0)
-        '''
         return lam_tot
     
     def __variance(self, expr):

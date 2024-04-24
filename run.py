@@ -123,7 +123,7 @@ plt.plot(np.abs(results_num - results_anly))
 psi_0 = np.zeros([16])
 psi_0[5] = 1
 N = 400
-shots = 150
+shots = 1
 
 o = np.pi
 d = 0
@@ -191,14 +191,14 @@ gamma = [gamma_1 for i in range(len(K_array))]
 tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
 
 
-results = tst.twoqubit_sample_runs(psi_0, N, shots)
+results_1 = tst.twoqubit_sample_runs(psi_0, N, shots)
 
 plt.title('Time-evolution of |11> state')
-plt.ylabel(r"$\rho_{11}$")
+#plt.ylabel(r"$\rho_{11}$")
 plt.xlabel(r'time')
 plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
 
 plt.legend()
-plt.plot(results[1], color = 'tab:red')
+plt.plot(results_1[1], color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
 # %%

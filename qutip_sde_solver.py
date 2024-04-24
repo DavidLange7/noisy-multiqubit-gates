@@ -541,7 +541,7 @@ Lets try two qubit rydberg and use 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 50 # You get a rabi oscillation for each dt=1.
+final_time = 400 # You get a rabi oscillation for each dt=1.
 num_timesteps = int(final_time)*1
 times = np.linspace(initial_time, final_time, num_timesteps)
 
@@ -556,12 +556,13 @@ tg = 0.5*10**(-6)
 gamma_1 = tg/t1
 
 d = 0
-o = 1
+o = np.pi
 x1 = 1
 x2 = 1
+V = 0.01
 
-hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
-hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, 20)
+#hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
+hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
 
 val_o, vec = np.linalg.eig(-1J*hamiltonian)
 val = np.exp(val_o)
@@ -639,8 +640,8 @@ K_r1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
        [0, 0, 0, 0]))
 
 #we can try with one only, so the sampling in the noisy gate is easier..
-K = [np.kron(K_r_single, qp.identity(4)).reshape(16,16),
-     np.kron(qp.identity(4), K_r_single).reshape(16,16)]
+K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
+     np.kron(qp.identity(4), K_1_single).reshape(16,16)]
 '''
      np.kron(qp.identity(4), K_1_single).reshape(16,16),
      np.kron(qp.identity(4), K_r_single).reshape(16,16),
@@ -672,7 +673,7 @@ linb3 = qp.Qobj(K_3,
 
 hamiltonian = qp.Qobj(hamiltonian, dims=[[4,4],[4,4]])
 
-lindblands = []
+lindblands = [linb]
 
 #question: why is the probability from 0 to .25 for starting in |11> of |1r> and |r1> ?
 
