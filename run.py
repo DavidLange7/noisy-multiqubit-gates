@@ -122,8 +122,8 @@ plt.plot(np.abs(results_num - results_anly))
 
 psi_0 = np.zeros([16])
 psi_0[5] = 1
-N = 300
-shots = 100
+N = 400
+shots = 150
 
 o = np.pi
 d = 0

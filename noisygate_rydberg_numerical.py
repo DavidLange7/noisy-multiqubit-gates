@@ -279,6 +279,9 @@ class rydberg_noisy_gate():
         results_p1 = np.zeros([N])
         results_p5 = np.zeros([N])
         results_pd = np.zeros([N])
+        results_1d = np.zeros([N])
+        results_d1 = np.zeros([N])
+        
 
         results_p0[0] = psi_0[0]
         results_p1[0] = psi_0[1]
@@ -286,6 +289,8 @@ class rydberg_noisy_gate():
         results_p5[0] = psi_0[5]
         results_pd[0] = psi_0[-1]
 
+        results_1d[0] = psi_0[7]
+        results_d1[0] = psi_0[-3]
         
         H = self.two_qubit_gate_ryd_ham()
         
@@ -306,6 +311,9 @@ class rydberg_noisy_gate():
                 
                 results_p5[i] = np.real(tmp[5][5])
                 results_pd[i] = np.real(tmp[-1][-1])
+                results_1d[i] = np.real(tmp[7][7])
+                results_d1[i] = np.real(tmp[-3][-3])
+
 
                 
             else:
@@ -316,9 +324,10 @@ class rydberg_noisy_gate():
                 
                 results_p5[i] = np.real(tmp[5][5])
                 results_pd[i] = np.real(tmp[-1][-1])
-
+                results_1d[i] = np.real(tmp[7][7])
+                results_d1[i] = np.real(tmp[-3][-3])
         
-        return(results_p5, results_pd)
+        return(results_p0, results_p1, results_p5, results_1d, results_d1, results_pd)
     
     def singlequbit_single_run(self, psi_0, N):
         '''
