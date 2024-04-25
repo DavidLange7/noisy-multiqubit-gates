@@ -35,8 +35,8 @@ def tqdm_joblib(tqdm_object):
         tqdm_object.close()
 
 '''
-#1 create 1-qubit initial state vector
-#2 create initial noiseless single qubit gate
+#1 create n-qubit initial state vector
+#2 create initial noiseless n-qubit gate
 #3 calculate deterministic part of noise
 #4 calculate stochastic part of noise
 #5 modify gate
@@ -48,7 +48,6 @@ def tqdm_joblib(tqdm_object):
 
 '''
 -e^ikr is for the position of the laser focus w.r.t. position of the atom...
-for friday (oct 6th) do for both rydberg and superconducting single-qubit evolution with and without stochastic part and compare....
 '''
 #%%
 class rydberg_noisy_gate():
@@ -65,7 +64,7 @@ class rydberg_noisy_gate():
     def __debugger(self, text, tbp, debug):
         if debug == 2:
             print(text, tbp)
-        return(None)
+        return None
     
     def single_qubit_gate_ryd(self):
         o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -116,7 +115,7 @@ class rydberg_noisy_gate():
 
         t = sp.symbols('t', real = True)
 
-        expr1 = [sp.exp(np.conj(-1J*val[i]*t)) for i in range(len(val))]
+        expr1 = [sp.exp((1J*val[i]*t)) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
         expr1 = np.diag(expr1)
@@ -258,7 +257,7 @@ class rydberg_noisy_gate():
 
         return result
     
-    def twoqubit_single_run(self, psi_0, N):
+    def twoqubit_single_run(self, psi_0, N, det, U, corr_mats):
         '''
         The actual run function.
         psi_0 > has to be for two qubit
@@ -282,12 +281,6 @@ class rydberg_noisy_gate():
         results_1d[0] = psi_0[7]
         results_d1[0] = psi_0[-3]
         
-        H = self.two_qubit_gate_ryd_ham()
-        
-        U = scipy.linalg.expm(-1J*H)
-
-        det = self.__det_part_r(H)
-        corr_mats = self.__stats(H)
         
         #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
         
@@ -372,8 +365,14 @@ class rydberg_noisy_gate():
         
         print('Start of simulation at ', datetime.datetime.now())
         print('--------------------------------')
+
+        H = self.two_qubit_gate_ryd_ham()
+        U = scipy.linalg.expm(-1J*H)
+        corr_mats = self.__stats(H)
+        det = self.__det_part_r(H)
+
         with tqdm_joblib(tqdm(desc="My calculation", total=shots)) as progress_bar:
-            res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
+            res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N, det, U, corr_mats) for i in range(shots))
         
         #without progress bar: res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
 

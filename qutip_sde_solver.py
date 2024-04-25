@@ -6,7 +6,7 @@ This examples shows how to run and reproduce the experiment of
 the preprint arxiv:2301.04173v2 using qutip, by solving the
 linbland equation.  
 """
-
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qp
