@@ -115,7 +115,7 @@ class rydberg_noisy_gate():
 
         t = sp.symbols('t', real = True)
 
-        expr1 = [sp.exp((1J*val[i]*t)) for i in range(len(val))]
+        expr1 = [sp.exp(np.conj(-1J*val[i]*t)) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
         expr1 = np.diag(expr1)
