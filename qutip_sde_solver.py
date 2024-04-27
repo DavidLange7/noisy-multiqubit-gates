@@ -541,8 +541,8 @@ Lets try two qubit rydberg and use 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 400 # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*1
+final_time = 1500 # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*30
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -559,7 +559,7 @@ d = 0
 o = np.pi
 x1 = 1
 x2 = 1
-V = 0.01
+V = 5
 
 #hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
 hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
@@ -666,9 +666,9 @@ linb =  [qp.Qobj((np.conj(v_m1).T @ val_mat @ np.conj(vec).T @ K[j] @ vec @ val_
 
 linb = [qp.Qobj(np.matmul(np.conjugate(U).T, np.matmul(K[j], U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
 
-linb = [qp.Qobj((np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+#linb = [qp.Qobj((np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
 
-linb = [qp.Qobj(np.linalg.multi_dot([np.conjugate(np.linalg.multi_dot([vec, val_mat, np.linalg.inv(vec)])), K[i], vec, val_mat, np.linalg.inv(vec)]), dims=[[4,4],[4,4]]) for i in range(len(K))]
+#linb = [qp.Qobj(np.linalg.multi_dot([np.conjugate(np.linalg.multi_dot([vec, val_mat, np.linalg.inv(vec)])), K[i], vec, val_mat, np.linalg.inv(vec)]), dims=[[4,4],[4,4]]) for i in range(len(K))]
         
 '''
 linb1 = qp.Qobj(K_1,
@@ -730,7 +730,7 @@ ax.axvline(t1/tg, color="black", label="$T_a$", ls="dashed")
 #ax.axvline(t1, color="forestgreen", label="T1", ls="dashed")
 ax.set_xlabel('Time [$t_g$]')
 ax.set_ylabel('Expectation values')
-ax.legend(fontsize = 35)
+#ax.legend(fontsize = 35)
 #plt.savefig('qutip_twoqubit.pdf', dpi=1000, bbox_inches='tight')
 
 plt.show()

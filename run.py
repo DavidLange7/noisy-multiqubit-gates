@@ -122,8 +122,8 @@ plt.plot(np.abs(results_num - results_anly))
 
 psi_0 = np.zeros([16])
 psi_0[5] = 1
-N = 300
-shots = 1
+N = 1500
+shots = 350
 
 o = np.pi
 d = 0
@@ -200,5 +200,128 @@ plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5
 
 plt.legend()
 plt.plot(results_1[1], color = 'tab:red')
+#plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
+
+#two qubit case
+
+psi_0 = np.zeros([16])
+psi_0[5] = 1
+N = 1500
+shots = 150
+
+o = np.pi
+d = 0
+V = 0.01
+t1 = 50*10**(-6) #amplitude damping
+
+tg = 0.5*10**(-6)
+
+gamma_1 = tg/t1
+
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
+
+K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+
+gamma = [gamma_1 for i in range(len(K_array))]
+
+
+tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
+
+
+results_2 = tst.twoqubit_sample_runs(psi_0, N, shots)
+
+plt.title('Time-evolution of |11> state')
+#plt.ylabel(r"$\rho_{11}$")
+plt.xlabel(r'time')
+plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
+
+plt.legend()
+plt.plot(results_2[1], color = 'tab:red')
+#plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
+
+#two qubit case
+
+psi_0 = np.zeros([16])
+psi_0[5] = 1
+N = 1500
+shots = 30
+
+o = np.pi
+d = 0
+V = 0.01
+t1 = 50*10**(-6) #amplitude damping
+
+tg = 0.5*10**(-6)
+
+gamma_1 = tg/t1
+
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
+
+K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+
+
+gamma = [gamma_1 for i in range(len(K_array))]
+
+
+tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
+
+
+results_3 = tst.twoqubit_sample_runs(psi_0, N, shots)
+
+plt.title('Time-evolution of |11> state')
+#plt.ylabel(r"$\rho_{11}$")
+plt.xlabel(r'time')
+plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
+
+plt.legend()
+plt.plot(results_3[1], color = 'tab:red')
+#plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
+
+psi_0 = np.zeros([16])
+psi_0[5] = 1
+N = 1500
+shots = 350
+
+o = np.pi
+d = 0
+V = 5
+t1 = 50*10**(-6) #amplitude damping
+
+tg = 0.5*10**(-6)
+
+gamma_1 = tg/t1
+
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
+
+K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+
+
+gamma = [gamma_1 for i in range(len(K_array))]
+
+
+tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
+
+
+results_3 = tst.twoqubit_sample_runs(psi_0, N, shots)
+
+plt.title('Time-evolution of |11> state')
+#plt.ylabel(r"$\rho_{11}$")
+plt.xlabel(r'time')
+plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
+
+plt.legend()
+plt.plot(results_3[1], color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
 # %%
