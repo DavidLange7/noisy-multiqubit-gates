@@ -18,48 +18,49 @@ calling noisygate_rydberg_numerical
 '''
 # half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
 #Single qubit gate
+results_num_arr = []
+for shots in [10, 30, 50, 100, 200, 300, 500]:
+       psi_0 = np.zeros([4])
+       psi_0[0] = 1
+       N = 7000
+       t1 = 0.2 #amplitude damping #4s is in thesis
 
-psi_0 = np.zeros([4])
-psi_0[0] = 1
-N = 400
-shots = 2
-t1 = 0.04 #amplitude damping #4s is in thesis
+       t2 = 300*10**(-3) #dephasing damping
 
-t2 = 300*10**(-3) #dephasing damping
-
-o_real = 2*np.pi*10*10**(3)
+       o_real = 2*np.pi*10*10**(3)
 
 
-tg = np.pi/o_real
+       tg = np.pi/o_real
 
-gamma_1 = tg/t1
-gamma_2 = tg/t2
+       gamma_1 = tg/t1
+       gamma_2 = tg/t2
 
-gamma = [gamma_1, gamma_1, gamma_1]
+       gamma = [gamma_1, gamma_1, gamma_2]
 
-K_array = [np.array(([0, 0, 0, 0],
-[0, 0, 0, 0],
-[0, 0, 0, 0],
-[0, 1, 0, 0])), 
-           np.array(([0, 0, 0, 0],
-[0, 0, 0, 0],
-[0, 0, 0, 0], 
-[1, 0, 0, 0])),
-            np.array(([1, 0, 0, 0],
-[0, -1, 0, 0],
-[0, 0, 0, 0],
-[0, 0, 0, 0]))]
+       K_array = [np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0])), 
+              np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0], 
+       [1, 0, 0, 0])),
+                   np.array(([1, 0, 0, 0],
+       [0, -1, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0]))]
 
-o = np.pi
-d = 0
+       o = np.pi
+       d = 0
 
-tst = ng.rydberg_noisy_gate(K_array, o, d, 1, gamma)
+       tst = ng.rydberg_noisy_gate(K_array, o, d, 1, gamma)
 
-results_num = tst.singlequbit_sample_runs(psi_0, N, shots)
+       results_num = tst.singlequbit_sample_runs(psi_0, N, shots)
+       results_num_arr.append(results_num)
 
-plt.plot(results_num, color = 'tab:red', label = 'noisygate')
+#plt.plot(results_num, color = 'tab:red', label = 'noisygate')
 #plt.axvline(x=t1/tg, label='$T_{dp}$', color = 'black', linestyle='dashed', alpha = 0.7)
-# %%
+
 '''
 In this cell, we run the single qubit rydberg noisy gate in its analytical form,
 calling noisy_rydberg_singlequbit_analytic
@@ -67,22 +68,11 @@ calling noisy_rydberg_singlequbit_analytic
 #half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
 
 '''
+results_anly_arr = []
 
+for shots in [10, 30, 50, 100, 200, 300, 500]:
 
-t1 = 0.04 #amplitude damping
-t2 = 300*10**(-3) #dephasing
-
-o_real = 2*np.pi*10*10**(3)
-o_fin = np.pi
-
-tg = np.pi/o_real
-
-g_1 = tg/t1
-gd = tg/t2
-
-gamma = [g_1, g_1]
-
-K_array = [
+       K_array = [
         [sp.Matrix(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
@@ -90,29 +80,34 @@ K_array = [
         [sp.Matrix(([0, 0, 0, 0],
               [0, 0, 0, 0],
               [0, 0, 0, 0],
-              [0, 1, 0, 0]))] ]
+              [0, 1, 0, 0]))],
+                   sp.Matrix(([1, 0, 0, 0],
+       [0, -1, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0]))]
         
-tst = nrsa.single_noisy_gate(np.pi, 0, K_array, gamma)
+       tst = nrsa.single_noisy_gate(np.pi, 0, K_array, gamma)
 
-psi_0 = np.zeros([4])
-psi_0[0] = 1
-N = 2000
-shots = 100
+       psi_0 = np.zeros([4])
+       psi_0[0] = 1
+       N = 7000
 
-o = np.pi
-d = 0.00001 #d = 0 causes overflow warnings, might want to add an exception
-o_p = np.sqrt(o**2 + d**2)
+       o = np.pi
+       d = 1e-10 #d = 0 causes overflow warnings, might want to add an exception
+       o_p = np.sqrt(o**2 + d**2)
 
-results_anly = tst.singlequbit_sample_runs(psi_0, N, shots, params = [1, o_p, d, o, 1, 1] ) #t, o_p, d, o, x1, x2
+       results_anly = tst.singlequbit_sample_runs(psi_0, N, shots, params = [1, o_p, d, o, 1, 1] ) #t, o_p, d, o, x1, x2
+       results_anly_arr.append(results_anly)
+
 #plt.title('Time-evolution of |0> state')
-plt.ylabel(r"$\rho_{00}$")
-plt.xlabel(r'time in [$t_g$]')
+#plt.ylabel(r"$\rho_{00}$")
+#plt.xlabel(r'time in [$t_g$]')
 
 #plt.axvline(x=t1/tg, label='$T_a$', color = 'orange', linestyle='dashed', alpha = 0.5)
 #plt.axvline(x=t2/tg, label='$T_{dp}$', color = 'black', linestyle='dashed', alpha = 0.7)
-plt.plot(results_anly[0], color = 'tab:red', label = 'noisygate')
+#plt.plot(results_anly[0], color = 'tab:red', label = 'noisygate')
 
-plt.legend()
+#plt.legend()
 #plt.savefig('noisygate_rydberg_sq_1000shots_10khzdrive_00.pdf', dpi=1000, bbox_inches = 'tight')
 # %%
 plt.plot(np.abs(results_num - results_anly))

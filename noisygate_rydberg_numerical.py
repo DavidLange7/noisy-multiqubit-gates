@@ -359,7 +359,7 @@ class rydberg_noisy_gate():
                 
                 results_pd[i] = np.real(tmp[3][3])
                 
-        return(results_p0)
+        return(results_p0, results_pd)
     
     def twoqubit_sample_runs(self, psi_0, N, shots):
         
