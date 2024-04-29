@@ -400,13 +400,8 @@ Lets try with the operators and 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 1000     # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*2000
-times = np.linspace(initial_time, final_time, num_timesteps)
-
-initial_time = 0.0
-final_time = 50000.0 # Set a shorter final time for faster simulation
-num_timesteps = 70000
+final_time = 7000     # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*50
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 
@@ -415,7 +410,7 @@ x1, x2 = sp.symbols('x1, x2')
 
 
 # Define the lindblad operators. Here you should put the correct parameters
-t1 = 4 #amplitude damping
+t1 = 0.2 #amplitude damping
 t2 = 300*10**(-3) #p.deph damping
 
 o_real = 2*np.pi*10*10**(3)
@@ -488,7 +483,7 @@ linbd = qp.Qobj(numpy_expr3.reshape((4,4)),
         dims=[[2,2],[2,2]])
 
 
-lindblands = [linbd]
+lindblands = [linb1, linb2, linbd]
 
 psi0 = qp.fock([2, 2], [0, 0])
 
@@ -509,8 +504,10 @@ if full_evolution:
 else:
     frequency = num_timesteps/(final_time-initial_time)
     mask = (np.arange(num_timesteps) % frequency) == 0
+    
 pop1 = result.expect[0]
 pop2 = result.expect[1]
+plt.plot(pop1[0::50])
 
 #%%
 # Map sigma_z into qubits
