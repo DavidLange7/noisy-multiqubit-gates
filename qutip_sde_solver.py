@@ -556,7 +556,7 @@ d = 0
 o = np.pi
 x1 = 1
 x2 = 1
-V = 5
+V = 0.01
 
 #hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
 hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
@@ -718,7 +718,7 @@ pop6 = result.expect[5]
 U_k = ((np.fft.fft(pop1)))
 
 ax.plot(times[mask], pop1[mask], label= r"$\langle \mathrm{11} \rangle$")
-ax.plot(times[mask], pop2[mask] + pop3[mask] + pop5[mask] + pop6[mask], label= r"$\langle \mathrm{d1} \rangle + \langle \mathrm{1d} \rangle+ \langle \mathrm{rd}\rangle + \langle \mathrm{dr} \rangle$")
+#ax.plot(times[mask], pop5[mask] + pop6[mask], label= r"$\langle \mathrm{d1} \rangle + \langle \mathrm{1d} \rangle$")
 ax.plot(times[mask], pop4[mask], label= r"$\langle \mathrm{dd} \rangle$")
 
 ax.axvline(t1/tg, color="black", label="$T_a$", ls="dashed")
@@ -727,8 +727,12 @@ ax.axvline(t1/tg, color="black", label="$T_a$", ls="dashed")
 #ax.axvline(t1, color="forestgreen", label="T1", ls="dashed")
 ax.set_xlabel('Time [$t_g$]')
 ax.set_ylabel('Expectation values')
-#ax.legend(fontsize = 35)
-#plt.savefig('qutip_twoqubit.pdf', dpi=1000, bbox_inches='tight')
+plt.xlim(-5,500)
+plt.ylim(-0.01,1)
+
+ax.legend(fontsize = 35)
+
+plt.savefig('V0.01_qutip_rydberg_twoqubit.png', dpi=100, bbox_inches='tight')
 
 plt.show()
 #%%
