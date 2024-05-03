@@ -6,7 +6,7 @@ This examples shows how to run and reproduce the experiment of
 the preprint arxiv:2301.04173v2 using qutip, by solving the
 linbland equation.  
 """
-
+#%%
 import numpy as np
 import matplotlib.pyplot as plt
 import qutip as qp
@@ -400,13 +400,8 @@ Lets try with the operators and 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 1000     # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*2000
-times = np.linspace(initial_time, final_time, num_timesteps)
-
-initial_time = 0.0
-final_time = 50000.0 # Set a shorter final time for faster simulation
-num_timesteps = 70000
+final_time = 7000     # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*50
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 
@@ -415,7 +410,7 @@ x1, x2 = sp.symbols('x1, x2')
 
 
 # Define the lindblad operators. Here you should put the correct parameters
-t1 = 4 #amplitude damping
+t1 = 0.2 #amplitude damping
 t2 = 300*10**(-3) #p.deph damping
 
 o_real = 2*np.pi*10*10**(3)
@@ -475,7 +470,7 @@ x_2 = 1
 
 hamiltonian = single_gate_hamiltonian_ryderg_fourlevels(d, o)
 
-numpy_expr3 = U_dag(o_p, 1, d, o, x_1, x_2, gamma_1)@K_d(o_p, 1, d, o, x_1, x_2, gamma_2)@U(o_p, 1, d, o, x_1, x_2, gamma_1)
+numpy_expr3 = U_dag(o_p, 1, d, o, x_1, x_2, gamma_1) @ K_d(o_p, 1, d, o, x_1, x_2, gamma_2) @ U(o_p, 1, d, o, x_1, x_2, gamma_1)
 
 
 linb1 = qp.Qobj(numpy_expr(o_p, 1, d, o, x_1, x_2, gamma_1).reshape((4,4)),
@@ -488,7 +483,7 @@ linbd = qp.Qobj(numpy_expr3.reshape((4,4)),
         dims=[[2,2],[2,2]])
 
 
-lindblands = [linbd]
+lindblands = [linb1, linb2, linbd]
 
 psi0 = qp.fock([2, 2], [0, 0])
 
@@ -509,8 +504,10 @@ if full_evolution:
 else:
     frequency = num_timesteps/(final_time-initial_time)
     mask = (np.arange(num_timesteps) % frequency) == 0
+    
 pop1 = result.expect[0]
 pop2 = result.expect[1]
+plt.plot(pop1[0::50])
 
 #%%
 # Map sigma_z into qubits
@@ -541,8 +538,8 @@ Lets try two qubit rydberg and use 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 50 # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*1
+final_time = 1500 # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*30
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -556,18 +553,22 @@ tg = 0.5*10**(-6)
 gamma_1 = tg/t1
 
 d = 0
-o = 1
+o = np.pi
 x1 = 1
 x2 = 1
+V = 5
 
-hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
-hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, 20)
+#hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
+hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
 
-val_o, vec = np.linalg.eig(-1J*hamiltonian)
+val_o, vec = np.linalg.eig(hamiltonian)
+
 val = np.exp(val_o)
+v_m1 = (np.linalg.inv(vec))
 
+val_mat = np.diag(1J*val)
+val_mat2 = np.diag(-1J*val)
 
-val_mat = np.diag(val)
 
 
 #U = np.matmul(vec, np.matmul(val_mat,np.linalg.inv(vec)))
@@ -639,8 +640,8 @@ K_r1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
        [0, 0, 0, 0]))
 
 #we can try with one only, so the sampling in the noisy gate is easier..
-K = [np.kron(K_r_single, qp.identity(4)).reshape(16,16),
-     np.kron(qp.identity(4), K_r_single).reshape(16,16)]
+K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
+     np.kron(qp.identity(4), K_1_single).reshape(16,16)]
 '''
      np.kron(qp.identity(4), K_1_single).reshape(16,16),
      np.kron(qp.identity(4), K_r_single).reshape(16,16),
@@ -657,8 +658,13 @@ K = [np.kron(K_r_single, qp.identity(4)).reshape(16,16),
 
 #test = np.conj(np.linalg.inv(vec)) @ val_mat @ np.conj(vec) @ K[0] @ vec @ np.conj(val_mat) @ np.linalg.inv(vec)
 
-linb = [qp.Qobj(np.matmul(np.conjugate(U), np.matmul(K[j], U)),
+linb =  [qp.Qobj((np.conj(v_m1).T @ val_mat @ np.conj(vec).T @ K[j] @ vec @ val_mat2 @ v_m1),
         dims=[[4,4],[4,4]]) for j in range(len(K))]
+
+linb = [qp.Qobj(np.matmul(np.conjugate(U).T, np.matmul(K[j], U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+
+#linb = [qp.Qobj((np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+
 #linb = [qp.Qobj(np.linalg.multi_dot([np.conjugate(np.linalg.multi_dot([vec, val_mat, np.linalg.inv(vec)])), K[i], vec, val_mat, np.linalg.inv(vec)]), dims=[[4,4],[4,4]]) for i in range(len(K))]
         
 '''
@@ -672,9 +678,8 @@ linb3 = qp.Qobj(K_3,
 
 hamiltonian = qp.Qobj(hamiltonian, dims=[[4,4],[4,4]])
 
-lindblands = []
+lindblands = [linb]
 
-#question: why is the probability from 0 to .25 for starting in |11> of |1r> and |r1> ?
 
 #psi0 = qp.fock([3, 3], [1, 1])
 psi0 = qp.fock([4, 4], [1, 1])
@@ -722,7 +727,7 @@ ax.axvline(t1/tg, color="black", label="$T_a$", ls="dashed")
 #ax.axvline(t1, color="forestgreen", label="T1", ls="dashed")
 ax.set_xlabel('Time [$t_g$]')
 ax.set_ylabel('Expectation values')
-ax.legend(fontsize = 35)
+#ax.legend(fontsize = 35)
 #plt.savefig('qutip_twoqubit.pdf', dpi=1000, bbox_inches='tight')
 
 plt.show()

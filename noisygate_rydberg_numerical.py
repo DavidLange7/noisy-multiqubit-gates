@@ -35,8 +35,8 @@ def tqdm_joblib(tqdm_object):
         tqdm_object.close()
 
 '''
-#1 create 1-qubit initial state vector
-#2 create initial noiseless single qubit gate
+#1 create n-qubit initial state vector
+#2 create initial noiseless n-qubit gate
 #3 calculate deterministic part of noise
 #4 calculate stochastic part of noise
 #5 modify gate
@@ -48,7 +48,6 @@ def tqdm_joblib(tqdm_object):
 
 '''
 -e^ikr is for the position of the laser focus w.r.t. position of the atom...
-for friday (oct 6th) do for both rydberg and superconducting single-qubit evolution with and without stochastic part and compare....
 '''
 #%%
 class rydberg_noisy_gate():
@@ -65,7 +64,7 @@ class rydberg_noisy_gate():
     def __debugger(self, text, tbp, debug):
         if debug == 2:
             print(text, tbp)
-        return(None)
+        return None
     
     def single_qubit_gate_ryd(self):
         o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -127,25 +126,18 @@ class rydberg_noisy_gate():
         lam = []
     
         for ind in range(len(L)):
-            L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 
-            tmp1 = sp.simplify(sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int))))
+            L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1
+            L_vec = sp.flatten((sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))))
             
-            tmp2 = sp.integrate(tmp1, (t, 0, 1))
-            tmp3 = sp.lambdify(t, tmp2, "numpy")
-            lam.append(tmp3(1))
+            #tmp2 = sp.integrate(tmp1, (t, 0, 1))
+            tmp_tot = np.array([scipy.integrate.quad(sp.lambdify(t, sp.re(L_vec[i]), "numpy"), 0, 1)[0] + 1J*scipy.integrate.quad(sp.lambdify(t, sp.im(L_vec[i]), "numpy"), 0, 1)[0] for i in range(len(L_vec))])
+
+            #tmp2 = sp.lambdify(t, tmp1, "numpy")
+            #tmp3 = scipy.integrate.quad(tmp2, 0, 1)
+            lam.append(tmp_tot.reshape(int(np.sqrt(len(L_vec))), int(np.sqrt(len(L_vec)))))
             
         lam_tot = np.sum(lam, axis = 0)
 
-            
-        '''
-        lam = []
-        for i in range(len(self.K_array)):
-            L = np.matmul(np.conjugate(U), np.matmul(self.K_array[i], U))
-
-            tmp = -1/2*(np.matmul(np.matrix.conjugate(L), L) - np.matmul(L, L))
-            lam.append(tmp)
-        lam_tot = np.sum(lam, axis = 0)
-        '''
         return lam_tot
     
     def __variance(self, expr):
@@ -265,7 +257,7 @@ class rydberg_noisy_gate():
 
         return result
     
-    def twoqubit_single_run(self, psi_0, N):
+    def twoqubit_single_run(self, psi_0, N, det, U, corr_mats):
         '''
         The actual run function.
         psi_0 > has to be for two qubit
@@ -276,6 +268,9 @@ class rydberg_noisy_gate():
         results_p1 = np.zeros([N])
         results_p5 = np.zeros([N])
         results_pd = np.zeros([N])
+        results_1d = np.zeros([N])
+        results_d1 = np.zeros([N])
+        
 
         results_p0[0] = psi_0[0]
         results_p1[0] = psi_0[1]
@@ -283,13 +278,9 @@ class rydberg_noisy_gate():
         results_p5[0] = psi_0[5]
         results_pd[0] = psi_0[-1]
 
+        results_1d[0] = psi_0[7]
+        results_d1[0] = psi_0[-3]
         
-        H = self.two_qubit_gate_ryd_ham()
-        
-        U = scipy.linalg.expm(-1J*H)
-
-        det = self.__det_part_r(H)
-        corr_mats = self.__stats(H)
         
         #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
         
@@ -303,6 +294,9 @@ class rydberg_noisy_gate():
                 
                 results_p5[i] = np.real(tmp[5][5])
                 results_pd[i] = np.real(tmp[-1][-1])
+                results_1d[i] = np.real(tmp[7][7])
+                results_d1[i] = np.real(tmp[-3][-3])
+
 
                 
             else:
@@ -313,9 +307,10 @@ class rydberg_noisy_gate():
                 
                 results_p5[i] = np.real(tmp[5][5])
                 results_pd[i] = np.real(tmp[-1][-1])
-
+                results_1d[i] = np.real(tmp[7][7])
+                results_d1[i] = np.real(tmp[-3][-3])
         
-        return(results_p5)
+        return(results_p0, results_p1, results_p5, results_1d, results_d1, results_pd)
     
     def singlequbit_single_run(self, psi_0, N):
         '''
@@ -364,14 +359,20 @@ class rydberg_noisy_gate():
                 
                 results_pd[i] = np.real(tmp[3][3])
                 
-        return(results_p0)
+        return(results_p0, results_pd)
     
     def twoqubit_sample_runs(self, psi_0, N, shots):
         
         print('Start of simulation at ', datetime.datetime.now())
         print('--------------------------------')
+
+        H = self.two_qubit_gate_ryd_ham()
+        U = scipy.linalg.expm(-1J*H)
+        corr_mats = self.__stats(H)
+        det = self.__det_part_r(H)
+
         with tqdm_joblib(tqdm(desc="My calculation", total=shots)) as progress_bar:
-            res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
+            res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N, det, U, corr_mats) for i in range(shots))
         
         #without progress bar: res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
 
