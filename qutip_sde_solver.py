@@ -538,8 +538,8 @@ Lets try two qubit rydberg and use 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 1500 # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*30
+final_time = 1000 # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*500
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -556,7 +556,7 @@ d = 0
 o = np.pi
 x1 = 1
 x2 = 1
-V = 0.01
+V = 100
 
 #hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
 hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
@@ -586,8 +586,8 @@ i = 5
 i2 = -2
 i3 = -4
 i4 = -1
-i5 = 7
-i6 = -3
+i5 = 6
+i6 = 9
 
 tmp[i,i] = 1
 tmp2[i2,i2] = 1
@@ -717,9 +717,9 @@ pop6 = result.expect[5]
 
 U_k = ((np.fft.fft(pop1)))
 
-ax.plot(times[mask], pop1[mask], label= r"$\langle \mathrm{11} \rangle$")
-#ax.plot(times[mask], pop5[mask] + pop6[mask], label= r"$\langle \mathrm{d1} \rangle + \langle \mathrm{1d} \rangle$")
-ax.plot(times[mask], pop4[mask], label= r"$\langle \mathrm{dd} \rangle$")
+#ax.plot(times[mask], pop1[mask], label= r"$\langle \mathrm{11} \rangle$")
+ax.plot(times[mask], pop5[mask] + pop6[mask], label= r"$\langle \mathrm{r1} \rangle + \langle \mathrm{1r} \rangle$")
+#ax.plot(times[mask], pop4[mask], label= r"$\langle \mathrm{dd} \rangle$")
 
 ax.axvline(t1/tg, color="black", label="$T_a$", ls="dashed")
 
@@ -732,7 +732,7 @@ plt.ylim(-0.01,1)
 
 ax.legend(fontsize = 35)
 
-plt.savefig('V0.01_qutip_rydberg_twoqubit.png', dpi=100, bbox_inches='tight')
+#plt.savefig('V0.01_qutip_rydberg_twoqubit.png', dpi=100, bbox_inches='tight')
 
 plt.show()
 #%%

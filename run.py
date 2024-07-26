@@ -4,7 +4,7 @@ os.chdir('/home/david/Courses_padova/Thesis/publishment/noisy-multiqubit-gates/'
 
 import noisygate_rydberg_numerical as ng
 import noisy_rydberg_singlequbit_analytic as nrsa
-
+import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
@@ -117,12 +117,12 @@ plt.plot(np.abs(results_num - results_anly))
 
 psi_0 = np.zeros([16])
 psi_0[5] = 1
-N = 1500
-shots = 350
+N = 800
+shots = 2000
 
 o = np.pi
 d = 0
-V = 0.01
+V = 10
 t1 = 50*10**(-6) #amplitude damping
 
 tg = 0.5*10**(-6)
@@ -196,13 +196,14 @@ plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5
 plt.legend()
 plt.plot(results_1[1], color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
-
+with open('res_jun22.txt', 'w') as f:
+    csv.writer(f, delimiter=',').writerows(results_1)
 #two qubit case
 
 psi_0 = np.zeros([16])
-psi_0[5] = 1
-N = 1500
-shots = 150
+psi_0[4] = 1
+N = 800
+shots = 2000
 
 o = np.pi
 d = 0
@@ -237,7 +238,7 @@ plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5
 plt.legend()
 plt.plot(results_2[1], color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
-
+#%%
 #two qubit case
 
 psi_0 = np.zeros([16])
