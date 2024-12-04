@@ -115,10 +115,11 @@ class rydberg_noisy_gate():
 
         t = sp.symbols('t', real = True)
 
-        expr1 = [sp.exp(np.conj(-1J*val[i]*t)) for i in range(len(val))]
+        expr1 = [sp.exp((-1J*val[i]*t)) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
         expr1 = np.diag(expr1)
+        expr1 = expr1.conj()
         expr2 = np.diag(expr2)
 
 
@@ -126,14 +127,11 @@ class rydberg_noisy_gate():
         lam = []
     
         for ind in range(len(L)):
-            L_int =  np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1
-            L_vec = sp.flatten((sp.Matrix((-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int)))))
+            L_int =  sp.Matrix(sp.simplify(np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1))
+            L_vec = sp.flatten(-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int))
             
-            #tmp2 = sp.integrate(tmp1, (t, 0, 1))
             tmp_tot = np.array([scipy.integrate.quad(sp.lambdify(t, sp.re(L_vec[i]), "numpy"), 0, 1)[0] + 1J*scipy.integrate.quad(sp.lambdify(t, sp.im(L_vec[i]), "numpy"), 0, 1)[0] for i in range(len(L_vec))])
 
-            #tmp2 = sp.lambdify(t, tmp1, "numpy")
-            #tmp3 = scipy.integrate.quad(tmp2, 0, 1)
             lam.append(tmp_tot.reshape(int(np.sqrt(len(L_vec))), int(np.sqrt(len(L_vec)))))
             
         lam_tot = np.sum(lam, axis = 0)
@@ -177,10 +175,11 @@ class rydberg_noisy_gate():
         v_m1 = np.linalg.inv(vec)
         t = sp.symbols('t', real = True)
 
-        expr1 = [sp.exp(np.conj(-1J*val[i]*t)) for i in range(len(val))]
+        expr1 = [sp.exp((-1J*val[i]*t)) for i in range(len(val))]
         expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
 
         expr1 = np.diag(expr1)
+        expr1 = expr1.conj()
         expr2 = np.diag(expr2)
 
         for ind in range(len(L)):
@@ -236,11 +235,7 @@ class rydberg_noisy_gate():
             sample_im = np.random.multivariate_normal(np.zeros([len_tot]), corr_im, 1)
     
             s_r = np.array([sample_r[0][i] for i in range(0, len_tot)])
-            s_im = np.array([sample_im[0][i] for i in range(0, len_tot)])
-            
-            #s_r = sample_r[0]
-            #s_im = sample_r[0]
-          
+            s_im = np.array([sample_im[0][i] for i in range(0, len_tot)])          
             
             result = s_r.reshape(len_resh, len_resh) + 1J*s_im.reshape(len_resh, len_resh)
             
@@ -264,81 +259,40 @@ class rydberg_noisy_gate():
         N >  number of two qubit gates.
         '''
         
-        results_p0 = np.zeros([N])
-        results_p1 = np.zeros([N])
-        results_p5 = np.zeros([N])
-        results_pd = np.zeros([N])
-        results_1d = np.zeros([N])
-        results_d1 = np.zeros([N])
+        result = np.zeros([len(psi_0), N])
         
-
-        results_p0[0] = psi_0[0]
-        results_p1[0] = psi_0[1]
-        
-        results_p5[0] = psi_0[5]
-        results_pd[0] = psi_0[-1]
-
-        results_1d[0] = psi_0[7]
-        results_d1[0] = psi_0[-3]
-        
-        
-        #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
+        result[:, 0] = psi_0
         
         U_array = np.array([self.__modify_gate(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
         for i in range(1,N):
             if i == 1:
                 res = np.matmul(U_array[-i-1], psi_0)
                 tmp = (np.outer(np.conj(res), res))
-                results_p0[i] = np.real(tmp[0][0])
-                results_p1[i] = np.real(tmp[1][1])
                 
-                results_p5[i] = np.real(tmp[5][5])
-                results_pd[i] = np.real(tmp[-1][-1])
-                results_1d[i] = np.real(tmp[7][7])
-                results_d1[i] = np.real(tmp[-3][-3])
+                result[:, i] = np.diag(tmp)
 
 
                 
             else:
                 res = np.matmul(U_array[-i-1], res)
                 tmp = (np.outer(np.conj(res), res))
-                results_p0[i] = np.real(tmp[0][0])
-                results_p1[i] = np.real(tmp[1][1])
+
+                result[:, i] = np.diag(tmp)
                 
-                results_p5[i] = np.real(tmp[5][5])
-                results_pd[i] = np.real(tmp[-1][-1])
-                results_1d[i] = np.real(tmp[7][7])
-                results_d1[i] = np.real(tmp[-3][-3])
         
-        return(results_p0, results_p1, results_p5, results_1d, results_d1, results_pd)
+        return(result)
     
-    def singlequbit_single_run(self, psi_0, N):
+    def singlequbit_single_run(self, psi_0, N, det, U, corr_mats):
         '''
         The actual run function.
         psi_0 > has to be for single qubit
         N >  number of single qubit gates.
         '''
         
-        results_p0 = np.zeros([N])
-        results_p1 = np.zeros([N])
-        results_pd = np.zeros([N])
+        result = np.zeros([len(psi_0), N])
         
-        results_p0[0] = psi_0[0]
-        results_p1[0] = psi_0[1]
+        result[:, 0] = psi_0        
         
-        results_pd[0] = psi_0[3]
-
-        #tmp_st = []
-        
-        
-        H = self.single_qubit_gate_ryd_ham()
-        
-        U = scipy.linalg.expm(-1J*H)
-
-        det = self.__det_part_r(H)
-        corr_mats = self.__stats(H)
-        
-        #print(scipy.linalg.expm(self.__stoch_part(corr_mats[0], corr_mats[1])))
         
         U_array = np.array([self.__modify_gate(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(N)])
 
@@ -346,20 +300,16 @@ class rydberg_noisy_gate():
             if i == 1:
                 res = np.matmul(U_array[-i-1], psi_0)
                 tmp = (np.outer(np.conj(res), res))
-                results_p0[i] = np.real(tmp[0][0])
-                results_p1[i] = np.real(tmp[1][1])
-                
-                results_pd[i] = np.real(tmp[3][3])
+
+                result[:, i] = np.diag(tmp)
                 
             else:
                 res = np.matmul(U_array[-i-1], res)
                 tmp = (np.outer(np.conj(res), res))
-                results_p0[i] = np.real(tmp[0][0])
-                results_p1[i] = np.real(tmp[1][1])
                 
-                results_pd[i] = np.real(tmp[3][3])
+                result[:, i] = np.diag(tmp)
                 
-        return(results_p0, results_pd)
+        return(result)
     
     def twoqubit_sample_runs(self, psi_0, N, shots):
         
@@ -374,8 +324,6 @@ class rydberg_noisy_gate():
         with tqdm_joblib(tqdm(desc="My calculation", total=shots)) as progress_bar:
             res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N, det, U, corr_mats) for i in range(shots))
         
-        #without progress bar: res = Parallel(n_jobs=-1)(delayed(self.twoqubit_single_run)(psi_0, N) for i in range(shots))
-
         res = np.array(res).sum(axis=0)/(shots)
         
         print('--------------------------------')
@@ -387,8 +335,15 @@ class rydberg_noisy_gate():
         
         print('Start of simulation at ', datetime.datetime.now())
         print('--------------------------------')
+
+        H = self.single_qubit_gate_ryd_ham()
+        U = scipy.linalg.expm(-1J*H)
+
+        det = self.__det_part_r(H)
+        corr_mats = self.__stats(H)
+
         with tqdm_joblib(tqdm(desc="My calculation", total=shots)) as progress_bar:
-            res = Parallel(n_jobs=-1)(delayed(self.singlequbit_single_run)(psi_0, N) for i in range(shots))
+            res = Parallel(n_jobs=-1)(delayed(self.singlequbit_single_run)(psi_0, N, det, U, corr_mats) for i in range(shots))
         
         #without progress bar: res = Parallel(n_jobs=-1)(delayed(self.singlequbit_single_run)(psi_0, N) for i in range(shots))
 
@@ -398,4 +353,3 @@ class rydberg_noisy_gate():
         print('End of simulation at ', datetime.datetime.now())
         
         return(res)
-# %%
