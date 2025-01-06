@@ -19,10 +19,10 @@ calling noisygate_rydberg_numerical
 # half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
 #Single qubit gate
 results_num_arr = []
-for shots in [500]:
+for shots in [5]:
        psi_0 = np.zeros([4])
        psi_0[0] = 1
-       N = 5000
+       N = 5
        t1 = 0.2 #amplitude damping #4s is in thesis
 
        t2 = 300*10**(-3) #dephasing damping
@@ -53,7 +53,7 @@ for shots in [500]:
        o = np.pi
        d = 0
 
-       tst = ng.rydberg_noisy_gate(K_array, o, d, 1, gamma)
+       tst = ng.rydberg_noisy_gate(K_array, o, d, 1, 1, 1, gamma)
 
        results_num = tst.singlequbit_sample_runs(psi_0, N, shots)
 

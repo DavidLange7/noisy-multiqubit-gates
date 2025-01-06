@@ -236,6 +236,12 @@ class rydberg_noisy_gate():
 
         return result
     
+    def arb_gate(self, U, det_part, corr_rs = None, corr_ims = None):
+                                                   
+        result = U @ scipy.linalg.expm(det_part) @ scipy.linalg.expm(self.__stoch_part(corr_rs, corr_ims))
+
+        return result
+    
     def twoqubit_single_run(self, psi_0, N, det, U, corr_mats):
         '''
         The actual run function.
@@ -336,7 +342,7 @@ class rydberg_noisy_gate():
         print('--------------------------------')
         print('End of simulation at ', datetime.datetime.now())
         
-    def gate_only(self, params, indx):
+    def gate_only(self, params, indx, shots):
         
         omega, delta, V, x1, x2 = params
         
@@ -356,6 +362,9 @@ class rydberg_noisy_gate():
         corr_mats = self.__stats(H)
         det = self.__det_part_r(H)
         
-        gate = self.__modify_gate(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1])
+        with tqdm_joblib(tqdm(desc="My calculation", total=shots)) as progress_bar:
+            gate = Parallel(n_jobs=-1)(delayed(self.arb_gate)(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1]) for i in range(shots))
+        
+        gate = np.array(gate).sum(axis=0)/(shots)
         
         return(gate)
