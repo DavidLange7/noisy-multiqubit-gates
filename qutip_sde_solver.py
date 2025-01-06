@@ -400,7 +400,7 @@ Lets try with the operators and 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 7000     # You get a rabi oscillation for each dt=1.
+final_time = 7000  # You get a rabi oscillation for each dt=1.
 num_timesteps = int(final_time)*50
 times = np.linspace(initial_time, final_time, num_timesteps)
 
@@ -538,8 +538,8 @@ Lets try two qubit rydberg and use 4 level system 0,1,r,d
 '''
 # Time discretization
 initial_time = 0.0
-final_time = 1000 # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*500
+final_time = 300 # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*100
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 o_p, t, d, o, gam1, gam2, gamr = sp.symbols('o_p, t, d, o, gam1, gam2, gamr', real = True)
@@ -556,7 +556,7 @@ d = 0
 o = np.pi
 x1 = 1
 x2 = 1
-V = 100
+V = 0
 
 #hamiltonian = two_qubit_gate_rydberg(d, o, 1, 1, 100)
 hamiltonian = two_qubit_gate_rydberg_w_dark(d, o, 1, 1, V)
@@ -573,6 +573,7 @@ val_mat2 = np.diag(-1J*val)
 
 #U = np.matmul(vec, np.matmul(val_mat,np.linalg.inv(vec)))
 U = scipy.linalg.expm(-1J*hamiltonian)
+
 # FOR the expectation values:
 tmp = np.zeros([16,16])
 tmp2 = np.zeros([16,16])
@@ -609,39 +610,52 @@ resulting order: 00, 01, 0r, 0d, 10, 11, 1r, 1d, r0, r1, rr, rd, d0, d1, dr, dd
 amplitude damping: 0d>dd (3>-1), 1d>dd (7>-1), rd>dd (11>-1) and also 12,13,14 > 15
 '''
 
-K_0_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_0_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [1, 0, 0, 0]))
 
-K_1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_1_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 1, 0, 0]))
 
-K_r_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_r_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 1, 0]))
 
-K_10_single = np.sqrt(gamma_1)*np.array(([0, 1, 0, 0],
+K_10_single = np.array(([0, 1, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0]))
 
-K_r0_single = np.sqrt(gamma_1)*np.array(([0, 0, 1, 0],
+K_r0_single = np.array(([0, 0, 1, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0]))
 
-K_r1_single = np.sqrt(gamma_1)*np.array(([0, 0, 0, 0],
+K_r1_single = np.array(([0, 0, 0, 0],
        [0, 0, 1, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0]))
 
 #we can try with one only, so the sampling in the noisy gate is easier..
 K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
-     np.kron(qp.identity(4), K_1_single).reshape(16,16)]
+     np.kron(qp.identity(4), K_1_single).reshape(16,16),
+     np.kron(K_0_single, qp.identity(4)).reshape(16,16),
+          np.kron(qp.identity(4), K_0_single).reshape(16,16)]
+
+K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
+     np.kron(qp.identity(4), K_1_single).reshape(16,16),
+     np.kron(qp.identity(4), K_r_single).reshape(16,16),
+     np.kron(K_r_single, qp.identity(4)).reshape(16,16),
+     np.kron(K_0_single, qp.identity(4)).reshape(16,16),
+     np.kron(qp.identity(4), K_0_single).reshape(16,16),
+     np.kron(K_10_single, qp.identity(4)).reshape(16,16),
+     np.kron(qp.identity(4), K_10_single).reshape(16,16),
+     np.kron(K_r0_single, qp.identity(4)).reshape(16,16),
+     np.kron(qp.identity(4), K_r0_single).reshape(16,16)]
 '''
      np.kron(qp.identity(4), K_1_single).reshape(16,16),
      np.kron(qp.identity(4), K_r_single).reshape(16,16),
@@ -655,15 +669,49 @@ K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
      np.kron(K_r1_single, qp.identity(4)).reshape(16,16),
      np.kron(qp.identity(4), K_r1_single).reshape(16,16)]
 '''
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
 
+K = [np.kron(K_1_single, qp.identity(4)).reshape(16,16),
+           np.kron(qp.identity(4), K_1_single).reshape(16,16)]
 #test = np.conj(np.linalg.inv(vec)) @ val_mat @ np.conj(vec) @ K[0] @ vec @ np.conj(val_mat) @ np.linalg.inv(vec)
 
-linb =  [qp.Qobj((np.conj(v_m1).T @ val_mat @ np.conj(vec).T @ K[j] @ vec @ val_mat2 @ v_m1),
-        dims=[[4,4],[4,4]]) for j in range(len(K))]
+#inb =  [qp.Qobj((np.conj(v_m1).T @ val_mat @ np.conj(vec).T @ K[j] @ vec @ val_mat2 @ v_m1),
+#       dims=[[4,4],[4,4]]) for j in range(len(K))]
 
 linb = [qp.Qobj(np.matmul(np.conjugate(U).T, np.matmul(K[j], U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+linb = [qp.Qobj(np.sqrt(gamma_1)*(np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
 
-#linb = [qp.Qobj((np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
+############################################################################### debugging
+val, vec = np.linalg.eig(hamiltonian)
+v_m1 = (np.linalg.pinv(vec))
+
+t = sp.symbols('t', real = True)
+
+expr1 = [sp.exp((-1J*val[i]*t)) for i in range(len(val))]
+expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
+
+expr1 = np.diag(expr1)
+expr1 = expr1.conj()
+expr2 = np.diag(expr2)
+
+expr1 = expr2.conj()
+linb = []
+for ind in range(len(K)):
+    K_int =  sp.Matrix(sp.simplify(np.sqrt(gamma_1)*np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ K[ind] @ vec @ expr2 @ v_m1))
+    L_vec = sp.flatten(((-1/2*gamma_1*(np.conj(K_int).T @ K_int - K_int @ K_int))))
+
+    temp  = np.array([scipy.integrate.quad(sp.lambdify(t, sp.re(K_int[i]), "numpy"), 0, 1)[0] + 1J*scipy.integrate.quad(sp.lambdify(t, sp.im(K_int[i]), "numpy"), 0, 1)[0] for i in range(len(K_int))])
+    linb.append(qp.Qobj(temp.reshape(16,16), dims=[[4,4],[4,4]]))
+
+    lam_tot = np.sum(linb, axis = 0)
+
+##################################################################################
+
+
+#linb = [qp.Qobj(np.sqrt(gamma_1)*(np.conjugate(U).T @ (K[j] @ U)), dims=[[4,4],[4,4]]) for j in range(len(K))]
 
 #linb = [qp.Qobj(np.linalg.multi_dot([np.conjugate(np.linalg.multi_dot([vec, val_mat, np.linalg.inv(vec)])), K[i], vec, val_mat, np.linalg.inv(vec)]), dims=[[4,4],[4,4]]) for i in range(len(K))]
         
@@ -678,12 +726,13 @@ linb3 = qp.Qobj(K_3,
 
 hamiltonian = qp.Qobj(hamiltonian, dims=[[4,4],[4,4]])
 
-lindblands = [linb]
+lindblands = [qp.Qobj(lam_tot,
+        dims=[[4,4],[4,4]])]
 
 
 #psi0 = qp.fock([3, 3], [1, 1])
 psi0 = qp.fock([4, 4], [1, 1])
-
+psi0 = qp.fock([4, 4], [1, 1])
 result = qp.mesolve(
                     H     = hamiltonian,
                     rho0  = psi0,
@@ -742,8 +791,6 @@ Here I try the final part: so two qubit with 4 levels 0,1,r,d so it will be a 9x
     resulting order: 00, 01, 0r, 10, 11, 1r, r0, r1, rr
     resulting order: 00, 01, 0r, 0d, 10, 11, 1r, 1d, r0, r1, rr, rd, d0, d1, dr, dd
     
-exponentiating meaning eigenvalue>> not feasable with 9x9 or more ofc. So solution?
-Maybe we can decompose the interacting part (0 and dark states are not involved in any dynamics only relaxation.)
 '''
 from sympy.physics.quantum import TensorProduct
 

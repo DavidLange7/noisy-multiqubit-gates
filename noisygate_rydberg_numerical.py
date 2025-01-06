@@ -162,88 +162,68 @@ class rydberg_noisy_gate():
 
 
     def __stats(self, ham):
-        '''
-        mat is a sympy matrix with only "t"-variable
-        '''
         
-        corr_rs = []
-        corr_ims = []
-        
+        corr_rs, corr_ims = [], []
         L = self.K_array
-        
         val, vec = np.linalg.eig(ham)
-        v_m1 = np.linalg.inv(vec)
-        t = sp.symbols('t', real = True)
-
-        expr1 = [sp.exp((-1J*val[i]*t)) for i in range(len(val))]
-        expr2 = [sp.exp(-1J*val[i]*t) for i in range(len(val))]
-
-        expr1 = np.diag(expr1)
-        expr1 = expr1.conj()
-        expr2 = np.diag(expr2)
-
-        for ind in range(len(L)):
-            tot =  sp.simplify(np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1 )
+        v_m1 = np.linalg.pinv(vec)
         
-            mat = sp.flatten(tot)
+        t = sp.symbols('t', real=True)
+        exp_diag = np.diag([sp.exp(-1J * val[i] * t) for i in range(len(val))])
+        exp_diag_conj = np.conj(exp_diag)
+    
+        v_m1_conj_T = np.conj(v_m1).T
+        vec_conj_T = np.conj(vec).T
+    
+        for L_ind in L:
 
-            corr_r = np.zeros([len(mat), len(mat)])
-            corr_im = np.zeros([len(mat), len(mat)])
+            transformed = v_m1_conj_T @ exp_diag_conj @ vec_conj_T @ L_ind @ vec @ exp_diag @ v_m1
+            transformed_flat = sp.flatten(transformed)
             
-            for k in range(len(mat)):
-                for j in range(len(mat)):
-                    binary_1 = t in mat[k].free_symbols
-                    binary_2 = t in mat[j].free_symbols
-                    
-                    if binary_1 == True and binary_2 == True:
-                        if k == j:
-                            corr_r[k,k] = self.__variance(sp.re(mat[k]))
-                        else:
-                            corr_r[k,j] = self.__correlation(sp.re(mat[k]), sp.re(mat[j]))
+            len_mat = len(transformed_flat)
+            corr_r, corr_im = np.zeros((len_mat, len_mat)), np.zeros((len_mat, len_mat))
             
-            for k in range(len(mat)):
-                for j in range(len(mat)):
-                    binary_1 = t in mat[k].free_symbols
-                    binary_2 = t in mat[j].free_symbols
-                    
-                    if binary_1 == True and binary_2 == True:
-                        if k == j:
-                            corr_im[k,k] = self.__variance(sp.im(mat[k]))
-                        else:
-                            corr_im[k,j] = self.__correlation(sp.im(mat[k]), sp.im(mat[j]))
+            t_present = [t in expr.free_symbols for expr in transformed_flat]
         
-            corr_rs.append(corr_r)
-            corr_ims.append(corr_im)
+            for k in range(len_mat):
+                if not t_present[k]:
+                    continue
+                for j in range(len_mat):
+                    
+                    if not t_present[j]:
+                        continue
+                    if k == j:
+                        corr_r[k, k] = self.__variance(sp.re(transformed_flat[k]))
+                        corr_im[k, k] = self.__variance(sp.im(transformed_flat[k]))
+                    else:
+                        corr_r[k, j] = self.__correlation(sp.re(transformed_flat[k]), sp.re(transformed_flat[j]))
+                        corr_im[k, j] = self.__correlation(sp.im(transformed_flat[k]), sp.im(transformed_flat[j]))
+        
+        corr_rs.append(corr_r)
+        corr_ims.append(corr_im)
 
-            self.__debugger('corr_rs',corr_rs, debug = 0)
-            self.__debugger('corr_ims',corr_ims, debug = 0)
-
-        return (corr_rs, corr_ims)
+        self.__debugger('corr_rs', corr_rs, debug=0)
+        self.__debugger('corr_ims', corr_ims, debug=0)
+    
+        return corr_rs, corr_ims
     
     def __stoch_part(self, corr_rs, corr_ims):
-        
-        len_tot = np.shape(corr_rs[0])[0]
+
+        len_tot = corr_rs[0].shape[0]
         len_resh = int(np.sqrt(len_tot))
-                
-        m = np.zeros([len_resh, len_resh]) + 1J*np.zeros([len_resh, len_resh])
+        m = np.zeros((len_resh, len_resh), dtype=complex)
 
-        for ind in range(len(self.K_array)):
-            corr_r = corr_rs[ind]
-            corr_im = corr_ims[ind]
-    
-            sample_r = np.random.multivariate_normal(np.zeros([len_tot]), corr_r, 1)
-            sample_im = np.random.multivariate_normal(np.zeros([len_tot]), corr_im, 1)
-    
-            s_r = np.array([sample_r[0][i] for i in range(0, len_tot)])
-            s_im = np.array([sample_im[0][i] for i in range(0, len_tot)])          
-            
-            result = s_r.reshape(len_resh, len_resh) + 1J*s_im.reshape(len_resh, len_resh)
-            
-            m += np.sqrt(self.gamma[ind])*result
+        for ind, (corr_r, corr_im) in enumerate(zip(corr_rs, corr_ims)):
 
-        self.__debugger('stochpart',m, debug = 1)
+            sample = np.random.multivariate_normal(np.zeros(len_tot), corr_r, 1) + \
+                     1J * np.random.multivariate_normal(np.zeros(len_tot), corr_im, 1)
+        
+            result = sample.reshape((len_resh, len_resh))
+            m += np.sqrt(self.gamma[ind]) * result
 
-        return(1J*m)
+        self.__debugger('stochpart', m, debug=1)
+        
+        return 1J * m
             
             
     def __modify_gate(self, U, det_part, corr_rs = None, corr_ims = None):

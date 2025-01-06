@@ -19,10 +19,10 @@ calling noisygate_rydberg_numerical
 # half manual time evolution (just like the paper first all U noisy gates and then sampling over many shots)
 #Single qubit gate
 results_num_arr = []
-for shots in [10, 30, 50, 100, 200, 300, 500]:
+for shots in [500]:
        psi_0 = np.zeros([4])
        psi_0[0] = 1
-       N = 7000
+       N = 5000
        t1 = 0.2 #amplitude damping #4s is in thesis
 
        t2 = 300*10**(-3) #dephasing damping
@@ -56,11 +56,44 @@ for shots in [10, 30, 50, 100, 200, 300, 500]:
        tst = ng.rydberg_noisy_gate(K_array, o, d, 1, gamma)
 
        results_num = tst.singlequbit_sample_runs(psi_0, N, shots)
+
+       with open(f'res_{shots}_nov22_500_sq.txt', 'w') as f:
+              csv.writer(f, delimiter=',').writerows(results_num)
        results_num_arr.append(results_num)
+#%%
+
+psi_0 = np.zeros([16])
+psi_0[5] = 1
+N = 1000
+shots = 5000
+o = np.pi
+d = 0
+V = 1
+t1 = 50*10**(-6) #amplitude damping
+
+tg = 0.5*10**(-6)
+
+gamma_1 = tg/t1
+
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
+
+K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+gamma = [gamma_1 for i in range(len(K))]
+
+tst = ng.rydberg_noisy_gate(K, o, d, V, gamma)
+
+
+results_1 = tst.twoqubit_sample_runs(psi_0, N, shots)
+with open('dec6_v1_shots5000_newstoch.txt', 'w') as f:
+    csv.writer(f, delimiter=',').writerows(results_1)
 
 #plt.plot(results_num, color = 'tab:red', label = 'noisygate')
 #plt.axvline(x=t1/tg, label='$T_{dp}$', color = 'black', linestyle='dashed', alpha = 0.7)
-
+#%%
 '''
 In this cell, we run the single qubit rydberg noisy gate in its analytical form,
 calling noisy_rydberg_singlequbit_analytic
@@ -70,7 +103,7 @@ calling noisy_rydberg_singlequbit_analytic
 '''
 results_anly_arr = []
 
-for shots in [10, 30, 50, 100, 200, 300, 500]:
+for shots in [10, 50, 200, 500]:
 
        K_array = [
         [sp.Matrix(([0, 0, 0, 0],
@@ -117,12 +150,11 @@ plt.plot(np.abs(results_num - results_anly))
 
 psi_0 = np.zeros([16])
 psi_0[5] = 1
-N = 800
-shots = 2000
-
+N = 500
+shots = 1000
 o = np.pi
 d = 0
-V = 10
+V = 3
 t1 = 50*10**(-6) #amplitude damping
 
 tg = 0.5*10**(-6)
@@ -133,9 +165,15 @@ K_1_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 1, 0, 0]))
+K_0_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [1, 0, 0, 0]))
 
 K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
-           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+           np.kron(np.identity(4), K_1_single).reshape(16,16),
+           np.kron(K_0_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_0_single).reshape(16,16)]
 
 
 
@@ -179,14 +217,34 @@ K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
      np.kron(np.identity(4), K_10_single).reshape(16,16),
      np.kron(K_r0_single, np.identity(4)).reshape(16,16),
      np.kron(np.identity(4), K_r0_single).reshape(16,16)]
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
 
-gamma = [gamma_1 for i in range(len(K_array))]
+K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+gamma = [gamma_1 for i in range(len(K))]
+
+tst = ng.rydberg_noisy_gate(K, o, d, V, gamma)
 
 
-tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
+results_3 = tst.twoqubit_sample_runs(psi_0, N, 500)
+with open('res_500_nov16.txt', 'w') as f:
+    csv.writer(f, delimiter=',').writerows(results_3)
+tst = ng.rydberg_noisy_gate(K, o, d, V, gamma)
 
 
-results_1 = tst.twoqubit_sample_runs(psi_0, N, shots)
+results_1 = tst.twoqubit_sample_runs(psi_0, N, 1000)
+with open('res_1000_nov16.txt', 'w') as f:
+    csv.writer(f, delimiter=',').writerows(results_1)
+tst = ng.rydberg_noisy_gate(K, o, d, V, gamma)
+
+
+results_2 = tst.twoqubit_sample_runs(psi_0, N, 2000)
+with open('res_2000_nov16.txt', 'w') as f:
+    csv.writer(f, delimiter=',').writerows(results_2)
+
 
 plt.title('Time-evolution of |11> state')
 #plt.ylabel(r"$\rho_{11}$")
@@ -194,35 +252,18 @@ plt.xlabel(r'time')
 plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
 
 plt.legend()
-plt.plot(results_1[1], color = 'tab:red')
+plt.plot(results_4[1], color = 'tab:red')
+'''
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
 with open('res_jun22.txt', 'w') as f:
     csv.writer(f, delimiter=',').writerows(results_1)
+'''
 #two qubit case
-
+#%%
 psi_0 = np.zeros([16])
-psi_0[4] = 1
+psi_0[5] = 1
 N = 800
-shots = 2000
-
-o = np.pi
-d = 0
-V = 0.01
-t1 = 50*10**(-6) #amplitude damping
-
-tg = 0.5*10**(-6)
-
-gamma_1 = tg/t1
-
-K_1_single = np.array(([0, 0, 0, 0],
-       [0, 0, 0, 0],
-       [0, 0, 0, 0],
-       [0, 1, 0, 0]))
-
-K_array = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
-           np.kron(np.identity(4), K_1_single).reshape(16,16)]
-
-gamma = [gamma_1 for i in range(len(K_array))]
+shots = 500
 
 
 tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
@@ -237,6 +278,25 @@ plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5
 
 plt.legend()
 plt.plot(results_2[1], color = 'tab:red')
+
+psi_0 = np.zeros([16])
+psi_0[5] = 1
+N = 800
+shots = 1000
+
+
+tst = ng.rydberg_noisy_gate(K_array, o, d, V, gamma)
+
+
+results_3 = tst.twoqubit_sample_runs(psi_0, N, shots)
+
+plt.title('Time-evolution of |11> state')
+#plt.ylabel(r"$\rho_{11}$")
+plt.xlabel(r'time')
+plt.axvline(x=1e2, label='T1', color = 'orange', linestyle='dashed', alpha = 0.5)
+
+plt.legend()
+plt.plot(results_3[1], color = 'tab:red')
 #plt.savefig('noisygatemanual_rydtwoq.pdf', dpi=1000)
 #%%
 #two qubit case
