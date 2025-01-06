@@ -51,7 +51,7 @@ def tqdm_joblib(tqdm_object):
 '''
 #%%
 class rydberg_noisy_gate():
-    def __init__(self, K_array, omega, delta = 0, V = 0, gamma = []):
+    def __init__(self, K_array, omega, delta = 0, V = 0, x1 = 1, x2 = 1, gamma = []):
         '''
         Initialize run by giving the parameters for single qubit gate
         '''
@@ -60,6 +60,8 @@ class rydberg_noisy_gate():
         self.V = V
         self.K_array = K_array
         self.gamma = gamma
+        self.x1 = x1
+        self.x2 = x2
         
     def __debugger(self, text, tbp, debug):
         if debug == 2:
@@ -80,9 +82,11 @@ class rydberg_noisy_gate():
     def single_qubit_gate_ryd_ham(self):
         omega = self.omega
         delta = self.delta
+        x1 = self.x1
+        x2 = self.x2
         
-        H = np.array([[0, omega/2, 0, 0], 
-                      [omega/2, -delta, 0, 0],
+        H = np.array([[0, omega/2*x1, 0, 0], 
+                      [omega/2*x2, -delta, 0, 0],
                       [0, 0, 0, 0],
                       [0, 0, 0, 0]])
         
@@ -332,4 +336,26 @@ class rydberg_noisy_gate():
         print('--------------------------------')
         print('End of simulation at ', datetime.datetime.now())
         
-        return(res)
+    def gate_only(self, params, indx):
+        
+        omega, delta, V, x1, x2 = params
+        
+        self.omega = omega
+        self.delta = delta
+        self.V = V
+        self.x1 = x1
+        self.x2 = x2
+        
+        if indx == 1:
+            H = self.single_qubit_gate_ryd_ham()
+            
+        if indx == 2:
+            H = self.two_qubit_gate_ryd_ham()
+            
+        U = scipy.linalg.expm(-1J*H)
+        corr_mats = self.__stats(H)
+        det = self.__det_part_r(H)
+        
+        gate = self.__modify_gate(U, det_part = det, corr_rs = corr_mats[0], corr_ims = corr_mats[1])
+        
+        return(gate)
