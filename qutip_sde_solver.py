@@ -124,7 +124,7 @@ times = np.linspace(initial_time, final_time, num_timesteps)
 
 # Define hamiltonian for X gate
 theta = np.pi
-phi = 0.0 # Not sure here, it is left variable in the cern code (?)
+phi = 0.0
 hamiltonian = single_gate_hamiltonian(np.pi, phi)
 
 # Define the limbland operators. Here you should put the correct parameters
