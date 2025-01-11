@@ -152,7 +152,7 @@ def generate_basis(num_qudits, levels, pattern):
     
     return state_dict
 
-def expectation_value(dens_mats, indx_sub, num_qudits):
+def expectation_value(dens_mats, indx_sub, num_qudits, inp_psi = False):
     '''
     e.g. if you want <x11> then you would use indx_sub = 5
          if <xdd> then -1 and so on
@@ -162,7 +162,12 @@ def expectation_value(dens_mats, indx_sub, num_qudits):
     
     projector = np.zeros([16,16])
     projector[indx_sub, indx_sub] = 1
+    
     for i in range(len(dens_mats)):
+        if inp_psi == True:
+            dens_mats[i] = np.outer(np.conj(dens_mats[i].full()), dens_mats[i].full())
+            dens_mats[i] = qp.Qobj(dens_mats[i], dims=[[4]*num_qudits, [4]*num_qudits])
+            
         rho_i = dens_mats[i]
 
         if num_qudits == 2:
@@ -181,8 +186,8 @@ def expectation_value(dens_mats, indx_sub, num_qudits):
 #%%
 # Time discretization
 initial_time = 0.0
-final_time = 300 # You get a rabi oscillation for each dt=1.
-num_timesteps = int(final_time)*50
+final_time = 30 # You get a rabi oscillation for each dt=1.
+num_timesteps = int(final_time)*5
 times = np.linspace(initial_time, final_time, num_timesteps)
 
 num_qubits = 3
@@ -294,8 +299,9 @@ ideal_hadamard = qp.Qobj(
 #%%
 #HERE we generate the CNOT gate yuppix2
 import qutip as qp
+import seaborn as sns
 
-def Cz_gate(num_qubits, control, target, psi, params):
+def Cz_gate_byevolution(num_qubits, control, target, psi, params):
     '''
     resulting order: 00, 01, 0r, 0d, 10, 11, 1r, 1d, r0, r1, rr, rd, d0, d1, dr, dd
     '''
@@ -306,9 +312,15 @@ def Cz_gate(num_qubits, control, target, psi, params):
     U = scipy.linalg.expm(-1J*hamiltonian.full())
     psi1 = U @ psi.full()
     
-    result = qp.mesolve(hamiltonian, psi, times, [], [])
-    psi = result.states[-1]
+    result = qp.mesolve(
+                        H     = hamiltonian,
+                        rho0  = psi,
+                        tlist = times,
+                        options =  {"store_states": True}
+                        )
     
+    psi = result.states
+    '''
     params[1] = omega*np.exp(1J*eps)
     hamiltonian = twoq_ham(num_qubits, control, target, params[:-2])
     U = scipy.linalg.expm(-1J*hamiltonian.full())
@@ -316,32 +328,101 @@ def Cz_gate(num_qubits, control, target, psi, params):
     
     result = qp.mesolve(hamiltonian, psi, times,[], [])
     psi = result.states[-1] 
+    '''
+    return psi
+
+def Cz_gate(num_qubits, control, target, params, plot = True):
     
-    return psi, psi1
+    delta, omega, x_1, x_2, V, eps, tau = params
+    hamiltonian = twoq_ham(num_qubits, control, target, params[:-2])
+    U = scipy.linalg.expm(-1J*tau*hamiltonian.full())
+    
+    basis_labels = ['00', '01', '0r', '0d', 
+                   '10', '11', '1r', '1d', 
+                   'r0', 'r1', 'rr', 'rd', 
+                   'd0', 'd1', 'dr', 'dd']
+    
+    
+    if plot == True:
+        plt.figure('real')
+        sns.heatmap(np.real(U), annot = True, fmt=".2f", cmap="YlGnBu",
+                    yticklabels=basis_labels, 
+                    xticklabels=basis_labels, 
+        annot_kws={"size": 15},  # Font size for annotations
+        cbar_kws={"shrink": 0.8} # Adjust colorbar size (optional)
+                    
+        )
+        plt.yticks(fontsize=14, rotation=0)
+        plt.xticks(fontsize=14, rotation=0)
+        plt.title("cz_operator matrix", fontsize = 14)
+    
+    
+    '''
+    plt.figure('imag')
+    sns.heatmap(np.imag(U), annot = True, fmt=".2f", cmap="YlGnBu")
+    plt.title("cnot_operator matrix")
+    plt.show()
+    '''
+    
+    return U
+
+def Cnot(show = True):
+    
+    x_gate = single_gate(2, 1, params = [0, np.pi, 1, 1])
+    ysqrt_gate = single_gate(2, 1, params = [0, np.pi/2, -1J, 1J])
+
+    H_control = x_gate @ ysqrt_gate
+    
+    H_control = qp.Qobj(H_control.full(), dims = [[16], [16]])
+    
+    '''
+    parameters for ideal Cz gate implementation
+    '''
+    eps = 1.894
+    omega = 5*2*np.pi
+    V = 10*10**3
+    delta = omega/eps
+    t1 = 14.99
+    tau = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
+    
+    Cz = Cz_gate(2, 0, 1, params = [delta, omega, 1, 1, V, 3.90242, tau], plot = False)
+
+    Cnot = H_control @ Cz @ H_control
+    
+    basis_labels = ['00', '01', '0r', '0d', 
+                   '10', '11', '1r', '1d', 
+                   'r0', 'r1', 'rr', 'rd', 
+                   'd0', 'd1', 'dr', 'dd']
+    
+    if show == True:
+        plt.figure('real')
+        sns.heatmap(np.real(Cnot.full()), annot = True, fmt=".2f", cmap="YlGnBu",
+                    yticklabels=basis_labels, 
+                    xticklabels=basis_labels, 
+        annot_kws={"size": 15},  # Font size for annotations
+        cbar_kws={"shrink": 0.8} # Adjust colorbar size (optional)
+                    
+        )
+        plt.yticks(fontsize=14, rotation=0)
+        plt.xticks(fontsize=14, rotation=0)
+        plt.title("cnot_operator matrix", fontsize = 14)
+    
+    return(Cnot)
 
 psi = np.zeros(16)
 psi[5] = 1 #|11>
-psi0 = qp.fock([4, 4], [1, 1])
+psi0 = qp.fock([4, 4], [0, 1])
 
-Omega   = 1
-frac_DO = 0.377371
-prod_Ot = 4.29268
-Delta = frac_DO * Omega 
-tau = prod_Ot / Omega
-
-
-res = Cz_gate(2, 0, 1, psi0, params = [Delta, Omega, 1, 1, 50, 3.90242, tau])
-
-rho = (np.outer(np.conj(res[0].full()), res[0].full()))
+eps = 1.894
+omega = 5*2*np.pi
+V = 10*10**3
+delta = omega/eps
+t1 = 14.99
+T_g = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
+tau = 1
 
 
-import seaborn as sns
-plt.figure(1)
-sns.heatmap(np.real(rho), annot = True, fmt=".2f", cmap="YlGnBu")
-plt.title("cnot_operator matrix")
-plt.show()
+res = Cz_gate_byevolution(2, 0, 1, psi0, params = [delta, omega, 1, 1, V, 3.90242, tau])
+plt.plot(expectation_value(res, 1, 2, True))
 
-rho = (np.outer(np.conj(res[1]), res[1]))
-plt.figure(2)
-sns.heatmap(np.real(rho), annot = True, fmt=".2f", cmap="YlGnBu")
-
+Cz_gate(2, 0, 1, params = [delta, omega, 1, 1, V, 3.90242, tau])
