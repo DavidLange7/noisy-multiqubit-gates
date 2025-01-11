@@ -127,7 +127,7 @@ theta = np.pi
 phi = 0.0
 hamiltonian = single_gate_hamiltonian(np.pi, phi)
 
-# Define the limbland operators. Here you should put the correct parameters
+# Define the lindblad operators. Here you should put the correct parameters
 tg = 35 * 10**(-9)
 
 p = 0.0003216219528905892
