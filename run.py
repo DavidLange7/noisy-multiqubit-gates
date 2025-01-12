@@ -1,6 +1,6 @@
 #%%
 import os
-os.chdir('/home/david/Courses_padova/Thesis/publishment/noisy-multiqubit-gates/')
+#os.chdir('/home/david/Courses_padova/Thesis/publishment/noisy-multiqubit-gates/')
 
 import noisygate_rydberg_numerical as ng
 import noisy_rydberg_singlequbit_analytic as nrsa
@@ -9,6 +9,35 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
 import scipy
+#%%
+
+t1 = 0.2 #amplitude damping #4s is in thesis
+o_real = 2*np.pi*10*10**(3)
+tg = np.pi/o_real
+
+gamma_1 = tg/t1
+omega = np.pi
+delta = 0
+x1 = 1
+x2 = 1
+V = 0
+
+K_1_single = np.array(([0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 0, 0, 0],
+       [0, 1, 0, 0]))
+
+singleq_init = ng.rydberg_noisy_gate([K_1_single], omega, delta, V, x1, x2, [gamma_1])
+params = omega, delta, V, x1, x2
+x_gate = singleq_init.gate_only(params, 1, 1)
+
+params = omega/2, delta, V, -1J,1J
+ysqrt_gate = singleq_init.gate_only(params, 1, 1)
+hadamard = x_gate @ ysqrt_gate
+
+K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+           np.kron(np.identity(4), K_1_single).reshape(16,16)]
+gamma = [gamma_1 for i in range(len(K))]
 #%%
 '''
 In this cell we run the single and two qubit rydberg noisy gate using the numerical version

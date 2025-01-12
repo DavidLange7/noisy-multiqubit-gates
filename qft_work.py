@@ -420,6 +420,7 @@ delta = omega/eps
 t1 = 14.99
 T_g = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
 tau = 1
+print(tau)
 
 
 res = Cz_gate_byevolution(2, 0, 1, psi0, params = [delta, omega, 1, 1, V, 3.90242, tau])
