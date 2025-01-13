@@ -17,6 +17,7 @@ from joblib import delayed, Parallel
 import contextlib
 import joblib
 from tqdm import tqdm
+from scipy.integrate import quad
 
 @contextlib.contextmanager
 def tqdm_joblib(tqdm_object):
@@ -109,6 +110,14 @@ class rydberg_noisy_gate():
         H_2 = np.kron(H_1, np.identity(4)).reshape([16,16]) + np.kron(np.identity(4), H_1).reshape([16,16]) + V*(np.kron(n, np.identity(4)).reshape([16,16])* np.kron(np.identity(4), n).reshape([16,16]))
         
         return H_2
+
+    def __parallel_quad(self, f, t_intervals):
+        '''
+        in order to circumvent convergence problems, I split up the integration into intevals
+        '''
+        results = Parallel(n_jobs=-1)(delayed(quad)(f, [a, b]) for a, b in t_intervals)
+        return sum(res[0] for res in results)
+
         
     def __det_part_r(self, ham):
 
@@ -134,7 +143,11 @@ class rydberg_noisy_gate():
             L_int =  sp.Matrix(sp.simplify(np.conj(v_m1).T @ expr1 @ np.conj(vec).T @ L[ind] @ vec @ expr2 @ v_m1))
             L_vec = sp.flatten(-1/2*self.gamma[ind]*(np.conj(L_int).T @ L_int - L_int @ L_int))
             
-            tmp_tot = np.array([scipy.integrate.quad(sp.lambdify(t, sp.re(L_vec[i]), "numpy"), 0, 1)[0] + 1J*scipy.integrate.quad(sp.lambdify(t, sp.im(L_vec[i]), "numpy"), 0, 1)[0] for i in range(len(L_vec))])
+            num_intervals = 100
+            t_intervals = [(i / num_intervals, (i + 1) / num_intervals) for i in range(num_intervals)]
+            
+            #tmp_tot = np.array([self.__parallel_quad(sp.lambdify(t, sp.re(L_vec[i]), "numpy"), t_intervals) + 1J*self.__parallel_quad(sp.lambdify(t, sp.im(L_vec[i]), "numpy"), t_intervals) for i in range(len(L_vec))])
+            tmp_tot = np.array([scipy.integrate.quad(sp.lambdify(t, sp.re(L_vec[i]), "numpy"), 0, 1, limit=100)[0] + 1J*scipy.integrate.quad(sp.lambdify(t, sp.im(L_vec[i]), "numpy"), 0, 1, limit=100)[0] for i in range(len(L_vec))])
 
             lam.append(tmp_tot.reshape(int(np.sqrt(len(L_vec))), int(np.sqrt(len(L_vec)))))
             
