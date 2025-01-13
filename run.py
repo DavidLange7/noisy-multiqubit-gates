@@ -42,17 +42,17 @@ def Cz_gate(control, target, plot = True):
 
     eps = 1.894
     omega = 5*2*np.pi
-    V = 100
+    V = 1000
     delta = omega/eps
     t1 = 14.99
     tau = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
-    t1 = 0.2
+    t1 = 400
     gamma_1 = tau/t1
     K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
            np.kron(np.identity(4), K_1_single).reshape(16,16)]
     gamma = [gamma_1 for i in range(len(K))]
 
-    params = [omega/tau, delta/tau, V/tau, 1, 1]
+    params = [omega*tau, delta*tau, V*tau, 1, 1]
     init = ng.rydberg_noisy_gate(K, omega, delta, V, x1, x2, gamma)
     cz = init.gate_only(params, 2, 1)
     
