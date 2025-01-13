@@ -415,15 +415,11 @@ psi0 = qp.fock([4, 4], [0, 1])
 
 eps = 1.894
 omega = 5*2*np.pi
-V = 10*10**3
+V = 1000
 delta = omega/eps
 t1 = 14.99
 T_g = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
 tau = 1
-print(tau)
 
 
-res = Cz_gate_byevolution(2, 0, 1, psi0, params = [delta, omega, 1, 1, V, 3.90242, tau])
-plt.plot(expectation_value(res, 1, 2, True))
-
-Cz_gate(2, 0, 1, params = [delta, omega, 1, 1, V, 3.90242, tau])
+Cz_gate(2, 0, 1, params = [delta*T_g, omega*T_g, 1, 1, V*T_g, 3.90242, tau])
