@@ -9,6 +9,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sympy as sp
 import scipy
+import seaborn as sns
 #%%
 
 t1 = 0.2 #amplitude damping #4s is in thesis
@@ -27,17 +28,54 @@ K_1_single = np.array(([0, 0, 0, 0],
        [0, 0, 0, 0],
        [0, 1, 0, 0]))
 
-singleq_init = ng.rydberg_noisy_gate([K_1_single], omega, delta, V, x1, x2, [gamma_1])
+init = ng.rydberg_noisy_gate([K_1_single], omega, delta, V, x1, x2, [gamma_1])
 params = omega, delta, V, x1, x2
-x_gate = singleq_init.gate_only(params, 1, 1)
+x_gate = init.gate_only(params, 1, 1)
 
 params = omega/2, delta, V, -1J,1J
-ysqrt_gate = singleq_init.gate_only(params, 1, 1)
+ysqrt_gate = init.gate_only(params, 1, 1)
 hadamard = x_gate @ ysqrt_gate
 
-K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
+
+#%%
+def Cz_gate(control, target, plot = True):
+
+    eps = 1.894
+    omega = 5*2*np.pi
+    V = 100
+    delta = omega/eps
+    t1 = 14.99
+    tau = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
+    t1 = 0.2
+    gamma_1 = tau/t1
+    K = [np.kron(K_1_single, np.identity(4)).reshape(16,16),
            np.kron(np.identity(4), K_1_single).reshape(16,16)]
-gamma = [gamma_1 for i in range(len(K))]
+    gamma = [gamma_1 for i in range(len(K))]
+
+    params = [omega/tau, delta/tau, V/tau, 1, 1]
+    init = ng.rydberg_noisy_gate(K, omega, delta, V, x1, x2, gamma)
+    cz = init.gate_only(params, 2, 1)
+    
+    basis_labels = ['00', '01', '0r', '0d', 
+                   '10', '11', '1r', '1d', 
+                   'r0', 'r1', 'rr', 'rd', 
+                   'd0', 'd1', 'dr', 'dd']
+    
+    
+    if plot == True:
+        plt.figure('real')
+        sns.heatmap(np.real(cz), annot = True, fmt=".2f", cmap="YlGnBu",
+                    yticklabels=basis_labels, 
+                    xticklabels=basis_labels, 
+        annot_kws={"size": 15},  # Font size for annotations
+        cbar_kws={"shrink": 0.8} # Adjust colorbar size (optional)
+                    
+        )
+        plt.yticks(fontsize=14, rotation=0)
+        plt.xticks(fontsize=14, rotation=0)
+        plt.title("cz_operator matrix", fontsize = 14)
+    
+    return cz
 #%%
 '''
 In this cell we run the single and two qubit rydberg noisy gate using the numerical version
