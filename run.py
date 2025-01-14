@@ -42,7 +42,7 @@ def Cz_gate(control, target, plot = True):
 
     eps = 1.894
     omega = 5*2*np.pi
-    V = 1000
+    V = 3000
     delta = omega/eps
     t1 = 14.99
     tau = t1*2*np.pi/np.sqrt(omega**2 + delta**2)
